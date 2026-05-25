@@ -33,8 +33,8 @@
       overflow-x: hidden;
     }
 
-    /* ── Starfield ─────────────────────────────────────────────── */
-    #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    /* ── Animated Background ────────────────────────────────────── */
+    #bg-frame { position: fixed; inset: 0; width: 100%; height: 100%; border: none; z-index: 0; pointer-events: none; }
 
     /* ── Layout ─────────────────────────────────────────────────── */
     .shell { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
@@ -465,8 +465,7 @@
 </head>
 <body>
 
-<!-- Stars canvas -->
-<canvas id="stars"></canvas>
+<iframe id="bg-frame" src="background.html"></iframe>
 
 <div class="shell">
 
@@ -723,40 +722,6 @@
 </div>
 
 <script>
-// ─── Starfield ──────────────────────────────────────────────────────────
-(function () {
-  const c = document.getElementById('stars');
-  const ctx = c.getContext('2d');
-  let W, H, stars;
-  function resize() {
-    W = c.width  = window.innerWidth;
-    H = c.height = window.innerHeight;
-  }
-  function seed() {
-    stars = Array.from({ length: 200 }, () => ({
-      x: Math.random() * W, y: Math.random() * H,
-      r: Math.random() * 1.4 + .2,
-      a: Math.random(),
-      s: (Math.random() - .5) * .12
-    }));
-  }
-  function draw() {
-    ctx.clearRect(0, 0, W, H);
-    stars.forEach(s => {
-      s.a += s.s * .03;
-      if (s.a < 0) s.a = 0;
-      if (s.a > 1) s.a = 1;
-      if (Math.abs(s.s) < .01 || s.a <= 0 || s.a >= 1) s.s *= -1;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(180,200,255,${s.a})`;
-      ctx.fill();
-    });
-    requestAnimationFrame(draw);
-  }
-  resize(); seed(); draw();
-  window.addEventListener('resize', () => { resize(); seed(); });
-})();
 
 // ─── State ───────────────────────────────────────────────────────────────
 let trades = JSON.parse(localStorage.getItem('tp_trades') || '[]');
