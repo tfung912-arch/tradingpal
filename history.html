@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradingPal — History</title>
+  <style>
+    :root {
+      --bg-deep:     #06061a;
+      --bg-card:     rgba(15, 15, 40, 0.85);
+      --bg-glass:    rgba(255, 255, 255, 0.04);
+      --border:      rgba(120, 80, 255, 0.25);
+      --purple:      #7c3aed;
+      --purple-glow: rgba(124, 58, 237, 0.45);
+      --cyan:        #06d6f3;
+      --cyan-glow:   rgba(6, 214, 243, 0.35);
+      --green:       #00f5a0;
+      --red:         #ff4d6d;
+      --text:        #e2e8f0;
+      --muted:       #7b85a3;
+      --gold:        #fbbf24;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Starfield ─────────────────────────────────────────── */
+    #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .shell { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 1.5rem; font-weight: 700; letter-spacing: .04em;
+      color: var(--cyan); text-shadow: 0 0 18px var(--cyan-glow);
+      text-decoration: none;
+    }
+    .logo svg { width: 36px; height: 36px; }
+    .nav-pills { display: flex; gap: 8px; }
+    .pill {
+      padding: 6px 16px; border-radius: 999px; font-size: .8rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--bg-glass);
+      color: var(--muted); cursor: pointer; transition: all .2s;
+      text-decoration: none; display: inline-block;
+    }
+    .pill:hover { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
+    .pill.active {
+      border-color: var(--cyan); color: var(--cyan);
+      background: rgba(6,214,243,.08); box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    /* ── Page title bar ────────────────────────────────────── */
+    .page-bar {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      margin: 36px 0 24px; flex-wrap: wrap; gap: 16px;
+    }
+    .page-title { font-size: 1.6rem; font-weight: 700; color: var(--text); }
+    .page-sub   { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── Filter bar ────────────────────────────────────────── */
+    .filter-bar {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 18px;
+      backdrop-filter: blur(12px); margin-bottom: 28px;
+      align-items: center;
+    }
+    .filter-bar input, .filter-bar select {
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 12px; color: var(--text);
+      font-size: .82rem; font-family: inherit; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .filter-bar input:focus, .filter-bar select:focus {
+      border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow);
+    }
+    .filter-bar select option { background: #0f0f28; }
+    .filter-bar input[type="text"] { min-width: 180px; }
+    .filter-bar input[type="date"] { min-width: 140px; }
+    .filter-label { font-size: .7rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-sep { width: 1px; background: var(--border); align-self: stretch; margin: 0 4px; }
+    .clear-btn {
+      padding: 7px 14px; border-radius: 8px; font-size: .78rem; font-weight: 600;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .clear-btn:hover { border-color: var(--red); color: var(--red); }
+    .sort-btn {
+      padding: 7px 14px; border-radius: 8px; font-size: .78rem; font-weight: 600;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .sort-btn.active { border-color: var(--purple); color: var(--purple); background: rgba(124,58,237,.1); }
+
+    /* ── Count bar ─────────────────────────────────────────── */
+    .count-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 18px; font-size: .8rem; color: var(--muted);
+    }
+    .count-bar strong { color: var(--text); }
+
+    /* ── Cards grid ────────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    /* ── Trade card ────────────────────────────────────────── */
+    .trade-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 18px; overflow: hidden;
+      backdrop-filter: blur(12px);
+      transition: transform .2s, box-shadow .25s;
+      display: flex; flex-direction: column;
+    }
+    .trade-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 40px var(--purple-glow);
+    }
+    .trade-card.win  { border-color: rgba(0,245,160,.3); }
+    .trade-card.loss { border-color: rgba(255,77,109,.22); }
+
+    /* Screenshot area */
+    .card-screenshot {
+      width: 100%; aspect-ratio: 16/7; overflow: hidden;
+      background: linear-gradient(135deg, rgba(124,58,237,.08), rgba(6,214,243,.05));
+      position: relative; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card-screenshot img {
+      width: 100%; height: 100%; object-fit: cover;
+      transition: transform .3s;
+    }
+    .card-screenshot:hover img { transform: scale(1.03); }
+    .no-screenshot {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      color: var(--muted); font-size: .75rem; pointer-events: none;
+    }
+    .no-screenshot .icon { font-size: 2rem; opacity: .3; }
+    .ss-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0);
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s;
+    }
+    .card-screenshot:hover .ss-overlay { background: rgba(0,0,0,.35); }
+    .ss-overlay-icon {
+      font-size: 2rem; opacity: 0; transform: scale(.8);
+      transition: opacity .2s, transform .2s;
+    }
+    .card-screenshot:hover .ss-overlay-icon { opacity: 1; transform: scale(1); }
+
+    /* Card body */
+    .card-body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+    .card-symbol { font-size: 1.25rem; font-weight: 700; letter-spacing: .02em; }
+    .card-date   { font-size: .75rem; color: var(--muted); margin-top: 3px; }
+
+    .pnl-chip {
+      padding: 5px 12px; border-radius: 999px; font-size: .85rem; font-weight: 700;
+      white-space: nowrap;
+    }
+    .pnl-chip.pos { background: rgba(0,245,160,.12); color: var(--green); box-shadow: 0 0 10px rgba(0,245,160,.2); }
+    .pnl-chip.neg { background: rgba(255,77,109,.12); color: var(--red);   box-shadow: 0 0 10px rgba(255,77,109,.2); }
+
+    .card-details {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+    }
+    .detail-item { display: flex; flex-direction: column; gap: 2px; }
+    .detail-label { font-size: .62rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; }
+    .detail-value { font-size: .85rem; font-weight: 600; }
+
+    .badge {
+      display: inline-block; padding: 3px 10px; border-radius: 6px;
+      font-size: .7rem; font-weight: 700; letter-spacing: .04em;
+    }
+    .badge.long  { background: rgba(0,245,160,.12); color: var(--green); }
+    .badge.short { background: rgba(255,77,109,.12); color: var(--red); }
+
+    .card-notes {
+      border-top: 1px solid rgba(120,80,255,.1); padding-top: 12px;
+      font-size: .78rem; color: #9aa5be; line-height: 1.6;
+    }
+    .card-notes .notes-label {
+      font-size: .62rem; color: var(--muted); letter-spacing: .1em;
+      text-transform: uppercase; margin-bottom: 4px;
+    }
+    .card-notes .notes-text { font-style: italic; }
+    .card-notes .no-notes { color: var(--muted); font-style: italic; }
+
+    /* ── Empty state ───────────────────────────────────────── */
+    .empty-state {
+      grid-column: 1 / -1; text-align: center; padding: 80px 24px;
+      color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 3.5rem; margin-bottom: 16px; opacity: .4; }
+    .empty-state p { font-size: .9rem; margin-top: 8px; }
+    .empty-state a {
+      display: inline-block; margin-top: 20px; padding: 10px 22px;
+      border-radius: 10px; font-size: .85rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--purple), #5b21b6);
+      color: #fff; text-decoration: none;
+      box-shadow: 0 0 16px var(--purple-glow);
+    }
+
+    /* ── Lightbox ──────────────────────────────────────────── */
+    .lightbox {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.88); backdrop-filter: blur(10px);
+      align-items: center; justify-content: center; flex-direction: column;
+      padding: 20px;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox-inner { position: relative; max-width: min(960px, 95vw); max-height: 80vh; width: 100%; }
+    .lightbox-inner img {
+      width: 100%; max-height: 75vh; object-fit: contain;
+      border-radius: 14px; border: 1px solid var(--border);
+      box-shadow: 0 0 60px var(--purple-glow);
+    }
+    .lightbox-caption {
+      margin-top: 14px; display: flex; gap: 16px; align-items: center;
+      font-size: .82rem; color: var(--muted); flex-wrap: wrap; justify-content: center;
+    }
+    .lightbox-caption strong { color: var(--text); }
+    .lightbox-close {
+      position: absolute; top: -14px; right: -14px;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--purple); border: none; color: #fff;
+      font-size: 1rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      box-shadow: 0 0 16px var(--purple-glow); transition: background .2s;
+    }
+    .lightbox-close:hover { background: var(--red); }
+    .lightbox-dl {
+      padding: 7px 16px; border-radius: 8px; font-size: .78rem; font-weight: 600;
+      background: rgba(6,214,243,.1); border: 1px solid var(--cyan);
+      color: var(--cyan); cursor: pointer; text-decoration: none;
+    }
+    .lightbox-dl:hover { background: rgba(6,214,243,.2); }
+
+    /* ── Scrollbar ─────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div class="shell">
+
+  <!-- Header -->
+  <header>
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="17" stroke="#06d6f3" stroke-width="1.5" opacity=".4"/>
+        <path d="M8 24 L14 14 L20 19 L26 10" stroke="#06d6f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="26" cy="10" r="3" fill="#7c3aed"/>
+        <path d="M18 4 L19 2 L20 4" fill="#fbbf24" opacity=".8"/>
+        <path d="M28 8 L29 6 L30 8" fill="#fbbf24" opacity=".5"/>
+      </svg>
+      TradingPal
+    </a>
+    <nav class="nav-pills">
+      <a class="pill" href="index.html">Dashboard</a>
+      <a class="pill" href="analytics.html">Analytics</a>
+      <a class="pill active" href="history.html">History</a>
+    </nav>
+  </header>
+
+  <!-- Page title -->
+  <div class="page-bar">
+    <div>
+      <div class="page-title">Trade History</div>
+      <div class="page-sub">Every trade you have logged — with charts, notes, and full detail</div>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <div class="filter-label">Search</div>
+      <input type="text" id="f-search" placeholder="Symbol…" oninput="applyFilters()" />
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group">
+      <div class="filter-label">Direction</div>
+      <select id="f-dir" onchange="applyFilters()">
+        <option value="">All</option>
+        <option value="LONG">Long</option>
+        <option value="SHORT">Short</option>
+      </select>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group">
+      <div class="filter-label">Result</div>
+      <select id="f-result" onchange="applyFilters()">
+        <option value="">All</option>
+        <option value="win">Winners</option>
+        <option value="loss">Losers</option>
+      </select>
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group">
+      <div class="filter-label">From</div>
+      <input type="date" id="f-from" oninput="applyFilters()" />
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">To</div>
+      <input type="date" id="f-to" oninput="applyFilters()" />
+    </div>
+    <div class="filter-sep"></div>
+    <div class="filter-group">
+      <div class="filter-label">Sort</div>
+      <select id="f-sort" onchange="applyFilters()">
+        <option value="date-desc">Newest first</option>
+        <option value="date-asc">Oldest first</option>
+        <option value="pnl-desc">Best P&L</option>
+        <option value="pnl-asc">Worst P&L</option>
+      </select>
+    </div>
+    <button class="clear-btn" onclick="clearFilters()">Clear</button>
+  </div>
+
+  <!-- Count -->
+  <div class="count-bar">
+    <div id="count-label">Loading…</div>
+    <div id="filtered-pnl" style="font-weight:600"></div>
+  </div>
+
+  <!-- Cards -->
+  <div class="cards-grid" id="cards-grid"></div>
+
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lightbox-img" src="" alt="Trade chart" />
+  </div>
+  <div class="lightbox-caption">
+    <div id="lightbox-meta"></div>
+    <a id="lightbox-dl" class="lightbox-dl" download="chart.png">Download</a>
+  </div>
+</div>
+
+<script>
+// ── Starfield ──────────────────────────────────────────────────────────────
+(function () {
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  let W, H, stars;
+  function resize() { W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+  function seed() {
+    stars = Array.from({ length: 220 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.4 + .2, a: Math.random(),
+      s: (Math.random() - .5) * .12
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    stars.forEach(s => {
+      s.a += s.s * .03;
+      if (s.a < 0) s.a = 0; if (s.a > 1) s.a = 1;
+      if (Math.abs(s.s) < .01 || s.a <= 0 || s.a >= 1) s.s *= -1;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,200,255,${s.a})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); seed(); draw();
+  window.addEventListener('resize', () => { resize(); seed(); });
+})();
+
+// ── Data ───────────────────────────────────────────────────────────────────
+const trades = JSON.parse(localStorage.getItem('tp_trades') || '[]');
+
+function computePnL(t) {
+  return (t.dir === 'LONG' ? 1 : -1) * (t.exit - t.entry) * t.size;
+}
+function fmt(n) { return (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2); }
+
+// ── Filters ────────────────────────────────────────────────────────────────
+function applyFilters() {
+  const search = document.getElementById('f-search').value.trim().toUpperCase();
+  const dir    = document.getElementById('f-dir').value;
+  const result = document.getElementById('f-result').value;
+  const from   = document.getElementById('f-from').value;
+  const to     = document.getElementById('f-to').value;
+  const sort   = document.getElementById('f-sort').value;
+
+  let filtered = trades.filter(t => {
+    if (search && !t.symbol.toUpperCase().includes(search)) return false;
+    if (dir && t.dir !== dir) return false;
+    const pnl = computePnL(t);
+    if (result === 'win'  && pnl <= 0) return false;
+    if (result === 'loss' && pnl > 0)  return false;
+    if (from && t.date < from) return false;
+    if (to   && t.date > to)   return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    if (sort === 'date-desc') return new Date(b.date) - new Date(a.date);
+    if (sort === 'date-asc')  return new Date(a.date) - new Date(b.date);
+    if (sort === 'pnl-desc')  return computePnL(b) - computePnL(a);
+    if (sort === 'pnl-asc')   return computePnL(a) - computePnL(b);
+    return 0;
+  });
+
+  renderCards(filtered);
+}
+
+function clearFilters() {
+  document.getElementById('f-search').value = '';
+  document.getElementById('f-dir').value = '';
+  document.getElementById('f-result').value = '';
+  document.getElementById('f-from').value = '';
+  document.getElementById('f-to').value = '';
+  document.getElementById('f-sort').value = 'date-desc';
+  applyFilters();
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderCards(list) {
+  const grid = document.getElementById('cards-grid');
+  const countEl = document.getElementById('count-label');
+  const pnlEl   = document.getElementById('filtered-pnl');
+  grid.innerHTML = '';
+
+  const total = list.reduce((s, t) => s + computePnL(t), 0);
+  countEl.innerHTML = `Showing <strong>${list.length}</strong> of <strong>${trades.length}</strong> trades`;
+  if (list.length) {
+    pnlEl.style.color = total >= 0 ? 'var(--green)' : 'var(--red)';
+    pnlEl.textContent = 'Filtered P&L: ' + fmt(total);
+  } else {
+    pnlEl.textContent = '';
+  }
+
+  if (!list.length) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🌌</div>
+        <div style="font-size:1.05rem;color:var(--text);font-weight:600">No trades found</div>
+        <p>${trades.length ? 'Try adjusting your filters.' : 'Head back to the dashboard to log your first trade.'}</p>
+        ${!trades.length ? '<a href="index.html">Go to Dashboard</a>' : ''}
+      </div>`;
+    return;
+  }
+
+  list.forEach((t, i) => {
+    const realIdx = trades.indexOf(t);
+    const pnl = computePnL(t);
+    const isWin = pnl > 0;
+
+    const card = document.createElement('div');
+    card.className = `trade-card ${isWin ? 'win' : 'loss'}`;
+
+    // Screenshot section
+    const ssSection = t.screenshot
+      ? `<div class="card-screenshot" onclick="openLightbox(${realIdx})">
+           <img src="${t.screenshot}" alt="Chart for ${t.symbol}" loading="lazy" />
+           <div class="ss-overlay"><div class="ss-overlay-icon">🔍</div></div>
+         </div>`
+      : `<div class="card-screenshot" style="cursor:default">
+           <div class="no-screenshot">
+             <div class="icon">📷</div>
+             <span>No chart uploaded</span>
+           </div>
+         </div>`;
+
+    card.innerHTML = `
+      ${ssSection}
+      <div class="card-body">
+        <div class="card-top">
+          <div>
+            <div class="card-symbol">${t.symbol.toUpperCase()} <span class="badge ${t.dir.toLowerCase()}">${t.dir}</span></div>
+            <div class="card-date">${formatDate(t.date)}</div>
+          </div>
+          <div class="pnl-chip ${isWin ? 'pos' : 'neg'}">${fmt(pnl)}</div>
+        </div>
+
+        <div class="card-details">
+          <div class="detail-item">
+            <div class="detail-label">Entry</div>
+            <div class="detail-value">$${(+t.entry).toFixed(2)}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Exit</div>
+            <div class="detail-value">$${(+t.exit).toFixed(2)}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">Position Size</div>
+            <div class="detail-value">${t.size} units</div>
+          </div>
+        </div>
+
+        <div class="card-notes">
+          <div class="notes-label">Notes</div>
+          ${t.notes
+            ? `<div class="notes-text">"${t.notes}"</div>`
+            : `<div class="no-notes">No notes recorded for this trade.</div>`}
+        </div>
+      </div>`;
+
+    grid.appendChild(card);
+  });
+}
+
+function formatDate(d) {
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ── Lightbox ───────────────────────────────────────────────────────────────
+function openLightbox(idx) {
+  const t   = trades[idx];
+  const pnl = computePnL(t);
+  document.getElementById('lightbox-img').src = t.screenshot;
+  document.getElementById('lightbox-dl').href = t.screenshot;
+  document.getElementById('lightbox-dl').download = `${t.symbol}_${t.date}.png`;
+  document.getElementById('lightbox-meta').innerHTML =
+    `<strong>${t.symbol.toUpperCase()}</strong> &nbsp;·&nbsp; ${formatDate(t.date)} &nbsp;·&nbsp;
+     <span style="color:${pnl>=0?'var(--green)':'var(--red)'}">${fmt(pnl)}</span>`;
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
+document.getElementById('lightbox').addEventListener('click', e => {
+  if (e.target === document.getElementById('lightbox')) closeLightbox();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ── Init ───────────────────────────────────────────────────────────────────
+applyFilters();
+</script>
+</body>
+</html>

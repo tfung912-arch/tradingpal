@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradingPal — Your Cosmic Trading Journal</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-deep:     #06061a;
+      --bg-card:     rgba(15, 15, 40, 0.85);
+      --bg-glass:    rgba(255, 255, 255, 0.04);
+      --border:      rgba(120, 80, 255, 0.25);
+      --purple:      #7c3aed;
+      --purple-glow: rgba(124, 58, 237, 0.45);
+      --cyan:        #06d6f3;
+      --cyan-glow:   rgba(6, 214, 243, 0.35);
+      --green:       #00f5a0;
+      --green-dark:  #00c77a;
+      --red:         #ff4d6d;
+      --text:        #e2e8f0;
+      --muted:       #7b85a3;
+      --gold:        #fbbf24;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Starfield ─────────────────────────────────────────────── */
+    #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .shell { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto; padding: 0 24px 60px; }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 1.5rem; font-weight: 700; letter-spacing: .04em;
+      color: var(--cyan); text-shadow: 0 0 18px var(--cyan-glow);
+    }
+    .logo svg { width: 36px; height: 36px; }
+    .nav-pills { display: flex; gap: 8px; }
+    .pill {
+      padding: 6px 16px; border-radius: 999px; font-size: .8rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--bg-glass);
+      color: var(--muted); cursor: pointer; transition: all .2s;
+    }
+    .pill:hover, .pill.active {
+      border-color: var(--cyan); color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+    .pill.active { background: rgba(6, 214, 243, 0.08); }
+
+    /* ── Section title ───────────────────────────────────────────── */
+    .section-title {
+      font-size: .65rem; font-weight: 700; letter-spacing: .18em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 14px;
+    }
+
+    /* ── Stat cards ──────────────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 32px 0 28px; }
+
+    @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px) { .stats-row { grid-template-columns: 1fr; } }
+
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 22px 20px;
+      backdrop-filter: blur(12px);
+      transition: box-shadow .25s;
+    }
+    .stat-card:hover { box-shadow: 0 0 24px var(--purple-glow); }
+
+    .stat-label { font-size: .72rem; color: var(--muted); margin-bottom: 8px; letter-spacing: .06em; text-transform: uppercase; }
+    .stat-value { font-size: 1.7rem; font-weight: 700; letter-spacing: -.01em; }
+    .stat-value.up   { color: var(--green); text-shadow: 0 0 14px rgba(0,245,160,.35); }
+    .stat-value.down { color: var(--red);   text-shadow: 0 0 14px rgba(255,77,109,.35); }
+    .stat-value.gold { color: var(--gold);  text-shadow: 0 0 14px rgba(251,191,36,.35); }
+    .stat-value.cyan { color: var(--cyan);  text-shadow: 0 0 14px var(--cyan-glow); }
+    .stat-delta { font-size: .75rem; margin-top: 6px; }
+    .stat-delta.up   { color: var(--green); }
+    .stat-delta.down { color: var(--red); }
+
+    /* ── Chart section ───────────────────────────────────────────── */
+    .chart-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 28px; backdrop-filter: blur(12px);
+      margin-bottom: 28px;
+    }
+    .chart-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
+    .chart-title { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+    .chart-subtitle { font-size: .78rem; color: var(--muted); margin-top: 3px; }
+    .range-btns { display: flex; gap: 6px; }
+    .range-btn {
+      padding: 5px 12px; border-radius: 8px; font-size: .75rem; font-weight: 600;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all .2s;
+    }
+    .range-btn.active, .range-btn:hover {
+      border-color: var(--purple); color: var(--purple);
+      background: rgba(124,58,237,.1);
+    }
+    .chart-wrap { position: relative; height: 280px; }
+
+    /* ── Two-column lower ────────────────────────────────────────── */
+    .lower-grid { display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+    @media (max-width: 1000px) { .lower-grid { grid-template-columns: 1fr; } }
+
+    /* ── Journal table ───────────────────────────────────────────── */
+    .journal-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 24px; backdrop-filter: blur(12px);
+    }
+    .journal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .add-btn {
+      padding: 8px 18px; border-radius: 10px; font-size: .8rem; font-weight: 700;
+      background: linear-gradient(135deg, var(--purple), #5b21b6);
+      border: none; color: #fff; cursor: pointer;
+      box-shadow: 0 0 16px var(--purple-glow); transition: transform .15s, box-shadow .15s;
+    }
+    .add-btn:hover { transform: translateY(-1px); box-shadow: 0 0 28px var(--purple-glow); }
+
+    table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+    thead th {
+      text-align: left; padding: 8px 12px;
+      font-size: .65rem; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    tbody tr { transition: background .15s; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+    tbody td { padding: 11px 12px; border-bottom: 1px solid rgba(120,80,255,.08); }
+    .badge {
+      display: inline-block; padding: 3px 9px; border-radius: 6px;
+      font-size: .7rem; font-weight: 700; letter-spacing: .04em;
+    }
+    .badge.long  { background: rgba(0,245,160,.12); color: var(--green); }
+    .badge.short { background: rgba(255,77,109,.12); color: var(--red); }
+    .pnl.pos { color: var(--green); font-weight: 700; }
+    .pnl.neg { color: var(--red);   font-weight: 700; }
+    .del-btn {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: .9rem; transition: color .15s;
+    }
+    .del-btn:hover { color: var(--red); }
+
+    /* ── Right column ────────────────────────────────────────────── */
+    .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Add Trade form ──────────────────────────────────────────── */
+    .form-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 24px; backdrop-filter: blur(12px);
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: .7rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+    input, select, textarea {
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; color: var(--text);
+      font-size: .85rem; font-family: inherit; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow);
+    }
+    select option { background: #0f0f28; }
+    textarea { resize: vertical; min-height: 64px; }
+    .submit-btn {
+      width: 100%; margin-top: 14px; padding: 11px;
+      border-radius: 10px; font-size: .875rem; font-weight: 700;
+      background: linear-gradient(135deg, #06d6f3, #7c3aed);
+      border: none; color: #fff; cursor: pointer;
+      box-shadow: 0 0 20px rgba(6,214,243,.3);
+      transition: opacity .2s, transform .15s;
+    }
+    .submit-btn:hover { opacity: .9; transform: translateY(-1px); }
+
+    /* ── AI Feedback card ────────────────────────────────────────── */
+    .feedback-card {
+      background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(6,214,243,.07));
+      border: 1px solid rgba(124,58,237,.35);
+      border-radius: 20px; padding: 24px; backdrop-filter: blur(12px);
+      flex: 1;
+    }
+    .feedback-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .ai-icon {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; box-shadow: 0 0 16px var(--purple-glow);
+      flex-shrink: 0;
+    }
+    .feedback-title { font-size: .95rem; font-weight: 700; color: var(--cyan); }
+    .feedback-subtitle { font-size: .72rem; color: var(--muted); }
+    .feedback-body { font-size: .82rem; line-height: 1.7; color: #b0bcd4; }
+    .feedback-body strong { color: var(--text); }
+    .feedback-item { display: flex; gap: 8px; margin-bottom: 10px; }
+    .feedback-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); margin-top: 7px; flex-shrink: 0; }
+
+    /* ── PalBot quote block ───────────────────────────────────────── */
+    .quote-divider {
+      border: none; border-top: 1px solid rgba(120,80,255,.15);
+      margin: 14px 0;
+    }
+    .quote-block {
+      background: rgba(124,58,237,.08);
+      border-left: 3px solid var(--purple);
+      border-radius: 0 10px 10px 0;
+      padding: 12px 14px; margin-top: 4px;
+    }
+    .quote-icon { font-size: .85rem; margin-bottom: 6px; opacity: .7; }
+    .quote-text {
+      font-size: .8rem; line-height: 1.65; color: #c4cfe8;
+      font-style: italic; margin-bottom: 8px;
+    }
+    .quote-source {
+      font-size: .68rem; color: var(--purple); font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase;
+    }
+
+    /* ── Scrollbar ───────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 99px; }
+
+    /* ── Modal overlay ───────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px; width: 100%; max-width: 560px;
+      max-height: 92vh; overflow-y: auto;
+      box-shadow: 0 0 60px var(--purple-glow);
+    }
+    .modal h3 { margin-bottom: 20px; color: var(--cyan); }
+    .modal-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+    .btn-cancel {
+      padding: 8px 18px; border-radius: 8px; font-size: .82rem;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); cursor: pointer;
+    }
+    .btn-cancel:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Emotion picker ──────────────────────────────────────────── */
+    .emotion-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+    .emo-chip {
+      padding: 5px 12px; border-radius: 999px; font-size: .75rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--bg-glass);
+      color: var(--muted); cursor: pointer; transition: all .18s;
+      user-select: none;
+    }
+    .emo-chip:hover { border-color: rgba(124,58,237,.5); color: var(--text); }
+    .emo-chip.selected {
+      background: rgba(124,58,237,.18); border-color: var(--purple);
+      color: #fff; box-shadow: 0 0 8px var(--purple-glow);
+    }
+    .emo-custom-wrap { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+    .emo-custom-wrap input { flex: 1; }
+    .emo-add-btn {
+      padding: 7px 14px; border-radius: 8px; font-size: .78rem; font-weight: 700;
+      background: rgba(124,58,237,.15); border: 1px solid var(--purple);
+      color: var(--purple); cursor: pointer; white-space: nowrap; transition: all .18s;
+    }
+    .emo-add-btn:hover { background: rgba(124,58,237,.3); }
+
+    /* ── Confidence lightsaber slider ───────────────────────────── */
+    .saber-wrap { padding: 2px 0 8px; }
+    .saber-level-display { text-align: center; margin-bottom: 10px; line-height: 1; }
+    .saber-num {
+      font-size: 2.2rem; font-weight: 900; display: block;
+      transition: color .2s, text-shadow .3s;
+    }
+    .saber-tier-label {
+      font-size: .7rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; margin-top: 5px; display: block;
+      transition: color .2s;
+    }
+    .saber-slider-row { display: flex; align-items: center; gap: 12px; }
+    .saber-scale { font-size: .76rem; color: var(--muted); font-weight: 700; flex-shrink: 0; width: 14px; text-align: center; }
+    #f-confidence {
+      -webkit-appearance: none; appearance: none;
+      flex: 1; height: 10px; border-radius: 99px;
+      outline: none; cursor: pointer; border: none;
+      transition: box-shadow .25s, background .2s;
+    }
+    #f-confidence::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 20px; height: 40px; border-radius: 4px 4px 9px 9px;
+      background: linear-gradient(180deg, #e0e0e0 0%, #aaa 30%, #555 68%, #1e1e1e 100%);
+      border: 1.5px solid rgba(255,255,255,.22);
+      box-shadow: 0 3px 10px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.3),
+                  0 0 0 1.5px rgba(255,255,255,.05);
+      cursor: grab; transition: transform .12s;
+    }
+    #f-confidence::-webkit-slider-thumb:active { cursor: grabbing; transform: scaleY(1.06); }
+    #f-confidence::-moz-range-thumb {
+      width: 20px; height: 40px; border-radius: 4px 4px 9px 9px;
+      background: linear-gradient(180deg, #e0e0e0 0%, #aaa 30%, #555 68%, #1e1e1e 100%);
+      border: 1.5px solid rgba(255,255,255,.22);
+      box-shadow: 0 3px 10px rgba(0,0,0,.65);
+      cursor: grab;
+    }
+    .saber-tick-row {
+      display: flex; justify-content: space-between; margin-top: 8px;
+      padding: 0 2px; font-size: .6rem; color: rgba(123,133,163,.5);
+    }
+
+    /* ── Emotion insight items ───────────────────────────────────── */
+    .emo-insight { margin-top: 10px; }
+    .emo-bar-row { margin-bottom: 8px; }
+    .emo-bar-top { display: flex; justify-content: space-between; font-size: .76rem; margin-bottom: 4px; }
+    .emo-bar-name { color: var(--text); font-weight: 600; }
+    .emo-bar-stat { color: var(--muted); }
+    .emo-track { height: 5px; background: rgba(255,255,255,.06); border-radius: 99px; overflow: hidden; }
+    .emo-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+
+    /* ── Realized P&L input ─────────────────────────────────────── */
+    .pnl-field-wrap {
+      position: relative; display: flex; align-items: center;
+    }
+    .pnl-prefix {
+      position: absolute; left: 12px; font-size: .9rem; font-weight: 700;
+      color: var(--muted); pointer-events: none; transition: color .2s;
+      z-index: 1;
+    }
+    .pnl-field-wrap input {
+      padding-left: 28px; font-weight: 700; font-size: .95rem;
+      transition: border-color .2s, box-shadow .2s, background .2s, color .2s;
+      width: 100%;
+    }
+    .pnl-field-wrap.profit .pnl-prefix { color: var(--green); }
+    .pnl-field-wrap.profit input {
+      border-color: rgba(0,245,160,.5);
+      background: rgba(0,245,160,.07);
+      color: var(--green);
+      box-shadow: 0 0 12px rgba(0,245,160,.15);
+    }
+    .pnl-field-wrap.loss .pnl-prefix { color: var(--red); }
+    .pnl-field-wrap.loss input {
+      border-color: rgba(255,77,109,.5);
+      background: rgba(255,77,109,.07);
+      color: var(--red);
+      box-shadow: 0 0 12px rgba(255,77,109,.15);
+    }
+    .pnl-auto-badge {
+      position: absolute; right: 10px;
+      font-size: .62rem; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
+      background: rgba(6,214,243,.12); color: var(--cyan);
+      border: 1px solid rgba(6,214,243,.25); pointer-events: none;
+      opacity: 0; transition: opacity .2s;
+    }
+    .pnl-field-wrap.auto-calc .pnl-auto-badge { opacity: 1; }
+    .pnl-hint {
+      font-size: .7rem; color: var(--muted); margin-top: 5px;
+    }
+
+    /* ── Point value presets ─────────────────────────────────────── */
+    .preset-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+    .preset-chip {
+      padding: 3px 10px; border-radius: 6px; font-size: .7rem; font-weight: 700;
+      border: 1px solid var(--border); background: var(--bg-glass);
+      color: var(--muted); cursor: pointer; transition: all .18s;
+    }
+    .preset-chip:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(6,214,243,.07); }
+    .preset-chip.selected { border-color: var(--cyan); color: var(--cyan); background: rgba(6,214,243,.12); }
+
+    /* ── Screenshot upload zone ──────────────────────────────────── */
+    .upload-zone {
+      border: 1.5px dashed var(--border); border-radius: 10px;
+      padding: 18px 12px; text-align: center; cursor: pointer;
+      transition: border-color .2s, background .2s; position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--cyan); background: rgba(6,214,243,.05);
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+      width: 100%; height: 100%; border: none; background: none; padding: 0;
+    }
+    .upload-zone input[type="file"]:focus { box-shadow: none; }
+    .upload-icon { font-size: 1.6rem; margin-bottom: 6px; }
+    .upload-label { font-size: .75rem; color: var(--muted); }
+    .upload-label span { color: var(--cyan); }
+    .upload-preview {
+      display: none; position: relative; margin-top: 10px;
+    }
+    .upload-preview img {
+      width: 100%; max-height: 140px; object-fit: cover;
+      border-radius: 8px; border: 1px solid var(--border);
+    }
+    .upload-preview .clear-img {
+      position: absolute; top: 4px; right: 4px;
+      background: rgba(0,0,0,.7); border: none; color: #fff;
+      border-radius: 50%; width: 22px; height: 22px; cursor: pointer;
+      font-size: .75rem; display: flex; align-items: center; justify-content: center;
+    }
+    .upload-preview .clear-img:hover { background: var(--red); }
+
+    /* ── Screenshot button in table ──────────────────────────────── */
+    .ss-btn {
+      background: none; border: none; cursor: pointer; font-size: 1rem;
+      opacity: .25; transition: opacity .2s, filter .2s;
+      vertical-align: middle;
+    }
+    .ss-btn.has-img { opacity: 1; filter: drop-shadow(0 0 6px var(--cyan)); }
+    .ss-btn.has-img:hover { filter: drop-shadow(0 0 12px var(--cyan)); }
+
+    /* ── Lightbox ────────────────────────────────────────────────── */
+    .lightbox {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.85); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center; flex-direction: column;
+      padding: 20px;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox-inner {
+      position: relative; max-width: min(900px, 95vw);
+      max-height: 80vh; width: 100%;
+    }
+    .lightbox-inner img {
+      width: 100%; max-height: 75vh; object-fit: contain;
+      border-radius: 12px; border: 1px solid var(--border);
+      box-shadow: 0 0 60px var(--purple-glow);
+    }
+    .lightbox-caption {
+      margin-top: 14px; display: flex; gap: 16px; align-items: center;
+      font-size: .82rem; color: var(--muted);
+    }
+    .lightbox-caption strong { color: var(--text); }
+    .lightbox-close {
+      position: absolute; top: -14px; right: -14px;
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--purple); border: none; color: #fff;
+      font-size: 1rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      box-shadow: 0 0 16px var(--purple-glow); transition: background .2s;
+    }
+    .lightbox-close:hover { background: var(--red); }
+    .lightbox-dl {
+      padding: 7px 16px; border-radius: 8px; font-size: .78rem; font-weight: 600;
+      background: rgba(6,214,243,.1); border: 1px solid var(--cyan);
+      color: var(--cyan); cursor: pointer; text-decoration: none;
+      transition: background .2s;
+    }
+    .lightbox-dl:hover { background: rgba(6,214,243,.2); }
+  </style>
+</head>
+<body>
+
+<!-- Stars canvas -->
+<canvas id="stars"></canvas>
+
+<div class="shell">
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <header>
+    <a class="logo" href="index.html" style="text-decoration:none">
+      <svg viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="17" stroke="#06d6f3" stroke-width="1.5" opacity=".4"/>
+        <path d="M8 24 L14 14 L20 19 L26 10" stroke="#06d6f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="26" cy="10" r="3" fill="#7c3aed"/>
+        <path d="M18 4 L19 2 L20 4" fill="#fbbf24" opacity=".8"/>
+        <path d="M28 8 L29 6 L30 8" fill="#fbbf24" opacity=".5"/>
+      </svg>
+      TradingPal
+    </a>
+    <nav class="nav-pills">
+      <a class="pill active" href="index.html">Dashboard</a>
+      <a class="pill" href="analytics.html">Analytics</a>
+      <a class="pill" href="history.html">History</a>
+    </nav>
+  </header>
+
+  <!-- ── Stat cards ──────────────────────────────────── -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total P&amp;L</div>
+      <div class="stat-value up" id="stat-pnl">+$0.00</div>
+      <div class="stat-delta up" id="stat-pnl-delta">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value gold" id="stat-winrate">0%</div>
+      <div class="stat-delta" id="stat-winrate-delta" style="color:var(--muted)">0 wins / 0 trades</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Best Trade</div>
+      <div class="stat-value up" id="stat-best">$0.00</div>
+      <div class="stat-delta" id="stat-best-sym" style="color:var(--muted)">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Trades</div>
+      <div class="stat-value cyan" id="stat-total">0</div>
+      <div class="stat-delta" style="color:var(--muted)" id="stat-open">0 open</div>
+    </div>
+  </div>
+
+  <!-- ── Profit Chart ────────────────────────────────── -->
+  <div class="chart-card">
+    <div class="chart-header">
+      <div>
+        <div class="chart-title">Cumulative P&amp;L</div>
+        <div class="chart-subtitle">Your equity curve across logged trades</div>
+      </div>
+      <div class="range-btns">
+        <button class="range-btn active" onclick="setRange(7,this)">7D</button>
+        <button class="range-btn" onclick="setRange(30,this)">30D</button>
+        <button class="range-btn" onclick="setRange(0,this)">All</button>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="pnlChart"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Lower grid ──────────────────────────────────── -->
+  <div class="lower-grid">
+
+    <!-- Journal -->
+    <div class="journal-card">
+      <div class="journal-header">
+        <div>
+          <div class="section-title">Trade Log</div>
+          <div style="font-size:.78rem;color:var(--muted)" id="journal-count">0 entries</div>
+        </div>
+        <button class="add-btn" onclick="openModal()">+ Log Trade</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Symbol</th>
+              <th>Dir</th>
+              <th>Entry</th>
+              <th>Exit</th>
+              <th>Size</th>
+              <th>P&amp;L</th>
+              <th>Notes</th>
+              <th>Chart</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="trade-tbody">
+            <tr id="empty-row">
+              <td colspan="10" style="text-align:center;color:var(--muted);padding:32px;font-size:.82rem">
+                No trades yet. Log your first trade to begin your journey.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="right-col">
+
+      <!-- AI Feedback -->
+      <div class="feedback-card">
+        <div class="feedback-header">
+          <div class="ai-icon">🤖</div>
+          <div>
+            <div class="feedback-title">PalBot Insights</div>
+            <div class="feedback-subtitle">AI-powered performance feedback</div>
+          </div>
+        </div>
+        <div class="feedback-body" id="feedback-body">
+          <div style="color:var(--muted);font-style:italic">Log your first few trades and PalBot will analyse your patterns here.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Trade Modal ──────────────────────────────── -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>🛸 Log New Trade</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Symbol</label>
+        <input type="text" id="f-symbol" placeholder="e.g. BTCUSD" />
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="f-date" />
+      </div>
+      <div class="form-group">
+        <label>Direction</label>
+        <select id="f-dir" onchange="autoCalcPnl()">
+          <option value="LONG">LONG</option>
+          <option value="SHORT">SHORT</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Size (units)</label>
+        <input type="number" id="f-size" placeholder="100" min="0" step="any" oninput="autoCalcPnl()" />
+      </div>
+      <div class="form-group">
+        <label>Entry Price</label>
+        <input type="number" id="f-entry" placeholder="0.00" step="any" oninput="autoCalcPnl()" />
+      </div>
+      <div class="form-group">
+        <label>Exit Price</label>
+        <input type="number" id="f-exit" placeholder="0.00" step="any" oninput="autoCalcPnl()" />
+      </div>
+      <div class="form-group full">
+        <label>Point / Tick Value (USD) <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— value per point per contract</span></label>
+        <input type="number" id="f-pointval" placeholder="1.00 — stocks &amp; forex default" min="0" step="any" value="1" oninput="autoCalcPnl()" style="font-weight:600" />
+        <div class="preset-chips" id="preset-chips">
+          <button type="button" class="preset-chip" onclick="setPreset(this,1)">Stocks / Forex &nbsp;$1</button>
+          <button type="button" class="preset-chip" onclick="setPreset(this,0.1)">Forex (0.1 lot) &nbsp;$0.10</button>
+          <button type="button" class="preset-chip" onclick="setPreset(this,2)">MNQ &nbsp;$2</button>
+          <button type="button" class="preset-chip" onclick="setPreset(this,5)">MES &nbsp;$5</button>
+          <button type="button" class="preset-chip" onclick="setPreset(this,20)">NQ &nbsp;$20</button>
+          <button type="button" class="preset-chip" onclick="setPreset(this,50)">ES &nbsp;$50</button>
+          <button type="button" class="preset-chip" onclick="setPreset(this,10)">YM &nbsp;$10</button>
+          <button type="button" class="preset-chip" onclick="setPreset(this,100)">GC (Gold) &nbsp;$100</button>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Realized P&amp;L (USD)</label>
+        <div class="pnl-field-wrap" id="pnl-wrap">
+          <span class="pnl-prefix">$</span>
+          <input type="number" id="f-pnl" placeholder="0.00" step="any"
+                 oninput="onManualPnl()" />
+          <span class="pnl-auto-badge">Auto</span>
+        </div>
+        <div class="pnl-hint" id="pnl-hint">Enter entry, exit &amp; size above to auto-calculate — or type a value directly.</div>
+      </div>
+      <div class="form-group full">
+        <label>How were you feeling? (optional)</label>
+        <div class="emotion-chips" id="emotion-chips">
+          <span class="emo-chip" onclick="toggleEmo(this)">😰 Fear</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">🤑 Greed</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">🚀 FOMO</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">😌 Calm</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">😟 Anxious</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">⚡ Impulsive</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">😡 Frustrated</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">🎯 Disciplined</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">😤 Revenge</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">🧘 Patient</span>
+          <span class="emo-chip" onclick="toggleEmo(this)">🤩 Excited</span>
+        </div>
+        <div class="emo-custom-wrap">
+          <input type="text" id="f-emo-custom" placeholder="Add custom emotion…" maxlength="24" />
+          <button type="button" class="emo-add-btn" onclick="addCustomEmo()">+ Add</button>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label style="font-size:.88rem;font-weight:700;color:var(--cyan);text-transform:none;letter-spacing:.02em">⚡ Confidence Level <span style="color:var(--muted);font-size:.78rem;font-weight:500">— how convicted were you in this trade?</span></label>
+        <div class="saber-wrap">
+          <div class="saber-level-display">
+            <span class="saber-num" id="saber-num">5</span>
+            <span class="saber-tier-label" id="saber-tier">Medium Confidence</span>
+          </div>
+          <div class="saber-slider-row">
+            <span class="saber-scale">1</span>
+            <input type="range" id="f-confidence" min="1" max="10" value="5" step="1"
+                   oninput="updateSaber(this.value)" />
+            <span class="saber-scale">10</span>
+          </div>
+          <div class="saber-tick-row">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+            <span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+          </div>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>Notes (optional)</label>
+        <textarea id="f-notes" placeholder="What was your thesis? What did you learn?"></textarea>
+      </div>
+      <div class="form-group full">
+        <label>Chart Screenshot (optional)</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="f-screenshot" accept="image/*" />
+          <div class="upload-icon">📸</div>
+          <div class="upload-label">Drag &amp; drop or <span>browse</span> to upload your chart</div>
+        </div>
+        <div class="upload-preview" id="upload-preview">
+          <img id="preview-img" src="" alt="Chart preview" />
+          <button class="clear-img" onclick="clearScreenshot(event)">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="submit-btn" onclick="addTrade()">Log Trade</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Screenshot Lightbox ──────────────────────────────── -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <div class="lightbox-inner">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lightbox-img" src="" alt="Trade chart screenshot" />
+  </div>
+  <div class="lightbox-caption">
+    <div id="lightbox-meta"></div>
+    <a id="lightbox-dl" class="lightbox-dl" download="chart.png">Download</a>
+  </div>
+</div>
+
+<script>
+// ─── Starfield ──────────────────────────────────────────────────────────
+(function () {
+  const c = document.getElementById('stars');
+  const ctx = c.getContext('2d');
+  let W, H, stars;
+  function resize() {
+    W = c.width  = window.innerWidth;
+    H = c.height = window.innerHeight;
+  }
+  function seed() {
+    stars = Array.from({ length: 200 }, () => ({
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.4 + .2,
+      a: Math.random(),
+      s: (Math.random() - .5) * .12
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    stars.forEach(s => {
+      s.a += s.s * .03;
+      if (s.a < 0) s.a = 0;
+      if (s.a > 1) s.a = 1;
+      if (Math.abs(s.s) < .01 || s.a <= 0 || s.a >= 1) s.s *= -1;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,200,255,${s.a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); seed(); draw();
+  window.addEventListener('resize', () => { resize(); seed(); });
+})();
+
+// ─── State ───────────────────────────────────────────────────────────────
+let trades = JSON.parse(localStorage.getItem('tp_trades') || '[]');
+let activeRange = 7;
+let pendingScreenshot = null;
+let pnlManuallyEdited = false; // true when the user has typed into the P&L field
+
+// ─── P&L auto-calculation ─────────────────────────────────────────────────
+function autoCalcPnl() {
+  if (pnlManuallyEdited) return;
+  const entry    = parseFloat(document.getElementById('f-entry').value);
+  const exit     = parseFloat(document.getElementById('f-exit').value);
+  const size     = parseFloat(document.getElementById('f-size').value);
+  const pointVal = parseFloat(document.getElementById('f-pointval').value) || 1;
+  const dir      = document.getElementById('f-dir').value;
+
+  const wrap  = document.getElementById('pnl-wrap');
+  const input = document.getElementById('f-pnl');
+  const hint  = document.getElementById('pnl-hint');
+
+  if (isNaN(entry) || isNaN(exit) || isNaN(size) || size <= 0) {
+    wrap.className = 'pnl-field-wrap';
+    return;
+  }
+
+  const points = (dir === 'LONG' ? 1 : -1) * (exit - entry);
+  const calc   = points * size * pointVal;
+  input.value  = calc.toFixed(2);
+  wrap.classList.add('auto-calc');
+  hint.textContent = `${Math.abs(points).toFixed(2)} pts × ${size} contracts × $${pointVal}/pt = $${Math.abs(calc).toFixed(2)}`;
+  stylePnlField(calc);
+}
+
+function setPreset(btn, val) {
+  document.getElementById('f-pointval').value = val;
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('selected'));
+  btn.classList.add('selected');
+  autoCalcPnl();
+}
+
+function onManualPnl() {
+  pnlManuallyEdited = true;
+  const val  = parseFloat(document.getElementById('f-pnl').value);
+  const wrap = document.getElementById('pnl-wrap');
+  wrap.classList.remove('auto-calc'); // hide "Auto" badge on manual edit
+  document.getElementById('pnl-hint').textContent = 'Manually entered — auto-calc disabled for this trade.';
+  if (!isNaN(val)) stylePnlField(val);
+  else wrap.className = 'pnl-field-wrap';
+}
+
+function stylePnlField(val) {
+  const wrap = document.getElementById('pnl-wrap');
+  wrap.classList.remove('profit', 'loss');
+  if (val > 0) wrap.classList.add('profit');
+  else if (val < 0) wrap.classList.add('loss');
+}
+
+function resetPnlField() {
+  pnlManuallyEdited = false;
+  document.getElementById('f-pnl').value = '';
+  document.getElementById('f-pointval').value = '1';
+  document.getElementById('pnl-wrap').className = 'pnl-field-wrap';
+  document.getElementById('pnl-hint').textContent = 'Enter entry, exit & size above to auto-calculate — or type a value directly.';
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('selected'));
+}
+
+// ─── Emotion picker ───────────────────────────────────────────────────────
+function toggleEmo(chip) {
+  chip.classList.toggle('selected');
+}
+
+function addCustomEmo() {
+  const input = document.getElementById('f-emo-custom');
+  const val   = input.value.trim();
+  if (!val) return;
+  // avoid duplicates
+  const existing = [...document.querySelectorAll('#emotion-chips .emo-chip')]
+    .find(c => c.dataset.label === val.toLowerCase());
+  if (existing) { existing.classList.add('selected'); input.value = ''; return; }
+  const chip = document.createElement('span');
+  chip.className = 'emo-chip selected';
+  chip.textContent = '✏️ ' + val;
+  chip.dataset.label = val.toLowerCase();
+  chip.onclick = () => chip.classList.toggle('selected');
+  document.getElementById('emotion-chips').appendChild(chip);
+  input.value = '';
+}
+
+function getSelectedEmotions() {
+  return [...document.querySelectorAll('#emotion-chips .emo-chip.selected')]
+    .map(c => c.textContent.trim());
+}
+
+function resetEmotions() {
+  // deselect built-ins
+  document.querySelectorAll('#emotion-chips .emo-chip').forEach(c => {
+    if (c.dataset.label) c.remove(); // remove custom ones
+    else c.classList.remove('selected');
+  });
+  document.getElementById('f-emo-custom').value = '';
+}
+
+// ─── Confidence lightsaber ─────────────────────────────────────────────────
+function updateSaber(val) {
+  val = +val;
+  const numEl  = document.getElementById('saber-num');
+  const tierEl = document.getElementById('saber-tier');
+  const track  = document.getElementById('f-confidence');
+  if (!numEl) return;
+
+  let color, glow, label;
+  if (val <= 3)      { color = '#ff4d6d'; glow = 'rgba(255,77,109,.85)';  label = 'Low — Uncertain'; }
+  else if (val <= 6) { color = '#fbbf24'; glow = 'rgba(251,191,36,.85)';  label = 'Medium Confidence'; }
+  else if (val <= 8) { color = '#06d6f3'; glow = 'rgba(6,214,243,.85)';   label = 'High Confidence'; }
+  else               { color = '#00f5a0'; glow = 'rgba(0,245,160,.85)';   label = 'Peak Conviction'; }
+
+  numEl.textContent      = val;
+  numEl.style.color      = color;
+  numEl.style.textShadow = `0 0 20px ${glow}, 0 0 50px ${glow}`;
+  tierEl.textContent     = label;
+  tierEl.style.color     = color;
+
+  const pct = ((val - 1) / 9) * 100;
+  track.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${pct}%, rgba(255,255,255,.07) ${pct}%)`;
+  track.style.boxShadow  = `0 0 12px ${glow}`;
+}
+
+function resetConfidence() {
+  const el = document.getElementById('f-confidence');
+  if (el) { el.value = 5; updateSaber(5); }
+}
+
+// ─── Emotion frequency analysis ────────────────────────────────────────────
+function analyseEmotions() {
+  // freq map: emotion → { count, wins, losses }
+  const freq = {};
+  trades.forEach(t => {
+    if (!t.emotions || !t.emotions.length) return;
+    const pnl = computePnL(t);
+    t.emotions.forEach(e => {
+      const key = e.replace(/^[\p{Emoji}\s]+/u, '').trim() || e; // strip emoji for key
+      if (!freq[e]) freq[e] = { count: 0, wins: 0, losses: 0, label: e };
+      freq[e].count++;
+      if (pnl > 0) freq[e].wins++;
+      else freq[e].losses++;
+    });
+  });
+  return Object.values(freq).sort((a,b) => b.count - a.count);
+}
+
+// ─── Confidence analysis ──────────────────────────────────────────────────
+function analyseConfidence() {
+  const withConf = trades.filter(t => t.confidence != null);
+  if (withConf.length < 2) return null;
+
+  const wTrades = withConf.filter(t => computePnL(t) > 0);
+  const lTrades = withConf.filter(t => computePnL(t) <= 0);
+  const avgWin  = wTrades.length ? wTrades.reduce((s,t)=>s+t.confidence,0)/wTrades.length : null;
+  const avgLoss = lTrades.length ? lTrades.reduce((s,t)=>s+t.confidence,0)/lTrades.length : null;
+
+  const buckets = [
+    { label: 'Low (1–3)',    trades: withConf.filter(t => t.confidence <= 3) },
+    { label: 'Medium (4–6)', trades: withConf.filter(t => t.confidence >= 4 && t.confidence <= 6) },
+    { label: 'High (7–10)', trades: withConf.filter(t => t.confidence >= 7) }
+  ].map(b => ({
+    label: b.label, total: b.trades.length,
+    wr: b.trades.length ? Math.round(b.trades.filter(t=>computePnL(t)>0).length/b.trades.length*100) : null
+  })).filter(b => b.total > 0);
+
+  return { avgWin, avgLoss, buckets, total: withConf.length };
+}
+
+// ─── Screenshot upload handling ───────────────────────────────────────────
+const ssInput   = document.getElementById('f-screenshot');
+const ssPreview = document.getElementById('upload-preview');
+const ssImg     = document.getElementById('preview-img');
+const uploadZone = document.getElementById('upload-zone');
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  if (file.size > 3 * 1024 * 1024) {
+    alert('Image is larger than 3 MB. Please use a smaller screenshot to keep storage lean.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingScreenshot = e.target.result;
+    ssImg.src = pendingScreenshot;
+    ssPreview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+ssInput.addEventListener('change', () => loadFile(ssInput.files[0]));
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  loadFile(e.dataTransfer.files[0]);
+});
+
+function clearScreenshot(e) {
+  if (e) e.stopPropagation();
+  pendingScreenshot = null;
+  ssInput.value = '';
+  ssImg.src = '';
+  ssPreview.style.display = 'none';
+}
+
+// ─── Lightbox ─────────────────────────────────────────────────────────────
+function openLightbox(idx) {
+  const t   = trades[idx];
+  const pnl = computePnL(t);
+  document.getElementById('lightbox-img').src = t.screenshot;
+  document.getElementById('lightbox-dl').href = t.screenshot;
+  document.getElementById('lightbox-dl').download = `${t.symbol}_${t.date}.png`;
+  document.getElementById('lightbox-meta').innerHTML =
+    `<strong>${t.symbol.toUpperCase()}</strong> &nbsp;·&nbsp; ${t.date} &nbsp;·&nbsp;
+     <span style="color:${pnl>=0?'var(--green)':'var(--red)'}">${fmt(pnl)}</span>`;
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox(e) {
+  if (e && e.target !== document.getElementById('lightbox') && !e.target.classList.contains('lightbox-close')) return;
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+// ─── Chart.js setup ──────────────────────────────────────────────────────
+const chartCtx = document.getElementById('pnlChart').getContext('2d');
+const gradient = chartCtx.createLinearGradient(0, 0, 0, 280);
+gradient.addColorStop(0, 'rgba(6,214,243,0.22)');
+gradient.addColorStop(1, 'rgba(6,214,243,0)');
+
+const pnlChart = new Chart(chartCtx, {
+  type: 'line',
+  data: { labels: [], datasets: [{
+    label: 'Cumulative P&L ($)',
+    data: [],
+    borderColor: '#06d6f3',
+    borderWidth: 2.5,
+    pointBackgroundColor: '#7c3aed',
+    pointRadius: 4,
+    pointHoverRadius: 6,
+    fill: true,
+    backgroundColor: gradient,
+    tension: 0.38
+  }]},
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(15,15,40,.95)',
+        borderColor: 'rgba(120,80,255,.35)',
+        borderWidth: 1,
+        titleColor: '#06d6f3',
+        bodyColor: '#e2e8f0',
+        callbacks: {
+          label: ctx => ' $' + ctx.parsed.y.toFixed(2)
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#7b85a3', font: { size: 11 } } },
+      y: {
+        grid: { color: 'rgba(255,255,255,.05)' },
+        ticks: {
+          color: '#7b85a3', font: { size: 11 },
+          callback: v => '$' + v.toFixed(0)
+        }
+      }
+    }
+  }
+});
+
+// ─── Render helpers ───────────────────────────────────────────────────────
+function fmt(n) { return (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2); }
+
+function computePnL(t) {
+  if (t.realizedPnl !== null && t.realizedPnl !== undefined) return t.realizedPnl;
+  const sign     = t.dir === 'LONG' ? 1 : -1;
+  const pointVal = t.pointValue || 1;
+  return sign * (t.exit - t.entry) * t.size * pointVal;
+}
+
+function filterByRange(arr, days) {
+  if (!days) return arr;
+  const cutoff = Date.now() - days * 864e5;
+  return arr.filter(t => new Date(t.date).getTime() >= cutoff);
+}
+
+function setRange(days, btn) {
+  activeRange = days;
+  document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateChart();
+}
+
+function updateChart() {
+  const filtered = filterByRange([...trades].sort((a,b) => new Date(a.date)-new Date(b.date)), activeRange);
+  let cum = 0;
+  const labels = [], data = [];
+  filtered.forEach(t => {
+    cum += computePnL(t);
+    labels.push(t.date);
+    data.push(+cum.toFixed(2));
+  });
+  pnlChart.data.labels = labels;
+  pnlChart.data.datasets[0].data = data;
+  pnlChart.data.datasets[0].borderColor = cum >= 0 ? '#06d6f3' : '#ff4d6d';
+  pnlChart.update();
+}
+
+function updateStats() {
+  const total = trades.reduce((s, t) => s + computePnL(t), 0);
+  const wins  = trades.filter(t => computePnL(t) > 0).length;
+  const wr    = trades.length ? (wins / trades.length * 100).toFixed(1) : 0;
+  const best  = trades.reduce((b, t) => { const p = computePnL(t); return p > b.v ? {v:p,sym:t.symbol} : b; }, {v:0,sym:'—'});
+
+  const pnlEl = document.getElementById('stat-pnl');
+  pnlEl.textContent = fmt(total);
+  pnlEl.className   = 'stat-value ' + (total >= 0 ? 'up' : 'down');
+  document.getElementById('stat-pnl-delta').textContent = trades.length ? `from ${trades.length} trades` : '—';
+
+  document.getElementById('stat-winrate').textContent = wr + '%';
+  document.getElementById('stat-winrate-delta').textContent = `${wins} wins / ${trades.length} trades`;
+
+  const bestEl = document.getElementById('stat-best');
+  bestEl.textContent = best.v ? '$' + best.v.toFixed(2) : '$0.00';
+  document.getElementById('stat-best-sym').textContent = best.sym;
+
+  document.getElementById('stat-total').textContent = trades.length;
+  document.getElementById('stat-open').textContent  = '0 open';
+}
+
+function renderTable() {
+  const tbody  = document.getElementById('trade-tbody');
+  const emptyR = document.getElementById('empty-row');
+
+  // Remove all rows except empty placeholder
+  tbody.querySelectorAll('tr:not(#empty-row)').forEach(r => r.remove());
+
+  if (!trades.length) {
+    emptyR.style.display = '';
+    document.getElementById('journal-count').textContent = '0 entries';
+    return;
+  }
+  emptyR.style.display = 'none';
+  document.getElementById('journal-count').textContent = `${trades.length} entr${trades.length===1?'y':'ies'}`;
+
+  [...trades].sort((a,b) => new Date(b.date)-new Date(a.date)).forEach((t, i) => {
+    const pnl    = computePnL(t);
+    const idx    = trades.indexOf(t);
+    const tr     = document.createElement('tr');
+    const hasShot = !!t.screenshot;
+    tr.innerHTML = `
+      <td style="color:var(--muted);white-space:nowrap">${t.date}</td>
+      <td style="font-weight:700">${t.symbol.toUpperCase()}</td>
+      <td><span class="badge ${t.dir.toLowerCase()}">${t.dir}</span></td>
+      <td>$${(+t.entry).toFixed(2)}</td>
+      <td>$${(+t.exit).toFixed(2)}</td>
+      <td>${t.size}</td>
+      <td class="pnl ${pnl>=0?'pos':'neg'}">${fmt(pnl)}</td>
+      <td style="color:var(--muted);font-size:.78rem;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.notes||'—'}</td>
+      <td><button class="ss-btn ${hasShot?'has-img':''}" title="${hasShot?'View chart screenshot':'No screenshot'}" ${hasShot?`onclick="openLightbox(${idx})"`:''}>📷</button></td>
+      <td><button class="del-btn" onclick="deleteTrade(${idx})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ─── Trading in the Zone — quote library ─────────────────────────────────
+const ZONE_QUOTES = [
+  { text: "The winners have attained a mindset — a unique set of attitudes — that allows them to remain disciplined, focused, and above all, confident in spite of the adverse conditions.", tags: ['losing_streak','drawdown','overall_loss'] },
+  { text: "95% of the trading errors you are likely to make will stem from your attitudes about being wrong, losing money, missing out and leaving money on the table.", tags: ['low_win_rate','fear','overall_loss'] },
+  { text: "Learning how to redefine your trading activities in a way that allows you to completely accept the risk is the key to thinking like a successful trader. Learning to accept the risk is a trading skill.", tags: ['fear','low_win_rate','overall_loss'] },
+  { text: "If you are unable to trade without the slightest bit of emotional discomfort — specifically fear — then you have not learnt how to accept the risks inherent in trading.", tags: ['fear','low_win_rate'] },
+  { text: "By developing a positive winning attitude: expecting a positive result from your efforts, with an acceptance that whatever results you get are a perfect reflection of your level of development and what you need to learn to do better.", tags: ['losing_streak','drawdown','low_win_rate'] },
+  { text: "The successful trader that you want to become is a future projection of yourself that you have to grow into. Growth implies expansion, learning, and creating a new way of expressing yourself.", tags: ['new_trader','losing_streak','drawdown'] },
+  { text: "Not predefining your risk, not cutting your losses, or not systematically taking profits are three of the most common and usually the most costly trading errors you can make.", tags: ['poor_rr','low_win_rate'] },
+  { text: "Only the best traders consistently pre-define their risks before entering a trade.", tags: ['poor_rr','low_win_rate'] },
+  { text: "Excellent traders have learnt that it is essential to have an internal mental mechanism to counteract the negative effects of euphoria or the overconfidence that comes from a string of winning trades.", tags: ['winning_streak','overconfident'] },
+  { text: "Winning is extremely dangerous if you haven't learnt how to monitor and control yourself.", tags: ['winning_streak','overconfident'] },
+  { text: "The moment euphoria takes hold, the trader is in deep trouble.", tags: ['winning_streak','overconfident'] },
+  { text: "If you win and you haven't learnt to create a healthy balance between confidence and restraint, you will sooner or later lose.", tags: ['winning_streak','overconfident'] },
+  { text: "The best traders stay in the flow because they don't try to get anything from the market. They simply make themselves available to take advantage of whatever the market is offering at any given moment.", tags: ['doing_well','consistent'] },
+  { text: "To trade without fear or overconfidence, perceive what the market is offering from its perspective, stay completely focused in the now-moment opportunity flow and spontaneously enter the zone.", tags: ['doing_well','consistent'] },
+  { text: "Taking responsibility means acknowledging and accepting, at the deepest part of your identity, that you — not the market — are completely responsible for your success or failure as a trader.", tags: ['overall_loss','blame'] },
+  { text: "It feels like you can't trust the market, but in reality you can't trust yourself.", tags: ['overall_loss','fear','blame'] },
+  { text: "Winning and consistency are states of mind in the same way that happiness, having fun, and satisfaction are states of mind.", tags: ['inconsistent','new_trader'] },
+  { text: "Events that have probable outcomes can produce consistent results if you can get the odds in your favour and there is a large enough sample size of events. The best traders treat trading like a numbers game.", tags: ['inconsistent','low_win_rate','new_trader'] },
+  { text: "Each trade is simply an edge with a probable outcome and statistically independent of every other trade.", tags: ['losing_streak','inconsistent'] },
+  { text: "If your edge puts the odds in your favour, then every loss puts you that much closer to a win. When you really believe this, your response to a losing trade will no longer take on a negative emotional quality.", tags: ['losing_streak','drawdown','low_win_rate'] },
+  { text: "To trade like a professional, the solution is in your mind, not in the market.", tags: ['overall_loss','inconsistent','fear'] },
+  { text: "It is a pattern recognition numbers game. We use market analysis to identify the patterns, define the risk and determine when to take profits. The trade either works or it doesn't. In any case, we go on to the next trade. It's that simple.", tags: ['losing_streak','inconsistent','new_trader'] },
+  { text: "Consistency is a state of mind that, once achieved, will not allow you to be any other way. You will not have to try to be consistent because it will be a natural function of your identity.", tags: ['inconsistent','new_trader'] },
+  { text: "The more you think you know, the less successful you will be. Trading is hard because you have to operate in a state of not having to know.", tags: ['overconfident','new_trader'] },
+  { text: "Making money consistently is a by-product of acquiring and mastering certain mental skills. Stop focusing on the money and focus instead on how you can use your trading as a tool to master these skills.", tags: ['low_win_rate','poor_rr','overall_loss'] },
+  { text: "We have to be rigid in our rules and flexible in our expectations. Rigid rules give us self-trust; flexible expectations let us perceive what the market is actually offering.", tags: ['poor_rr','inconsistent','fear'] },
+  { text: "The loss doesn't create any emotional damage, because I don't interpret the experience negatively. To me, losses are simply the cost of doing business — the amount of money I need to spend to make myself available for the winning trades.", tags: ['losing_streak','drawdown','low_win_rate'] },
+  { text: "I AM A CONSISTENT WINNER: I objectively identify my edge, I predefine the risk of every trade, I completely accept the risk, I act on my edges without reservation or hesitation, and I pay myself as the market makes money available to me.", tags: ['doing_well','consistent'] },
+  { text: "If you want to start sensing the flow of the market, your mind has to be relatively free of fear, anger, regret, betrayal, despair and disappointment.", tags: ['fear','overall_loss','losing_streak'] },
+];
+
+// ─── Situation detector ───────────────────────────────────────────────────
+function detectSituations() {
+  const allPnl  = trades.map(computePnL);
+  const wins    = allPnl.filter(p => p > 0);
+  const losses  = allPnl.filter(p => p <= 0);
+  const total   = allPnl.reduce((a,b) => a+b, 0);
+  const wr      = wins.length / trades.length;
+  const avgWin  = wins.length   ? wins.reduce((a,b)=>a+b,0)/wins.length : 0;
+  const avgLoss = losses.length ? Math.abs(losses.reduce((a,b)=>a+b,0)/losses.length) : 0;
+  const rr      = avgLoss ? avgWin / avgLoss : Infinity;
+  const last3   = allPnl.slice(-3);
+
+  const tags = [];
+  if (last3.length >= 2 && last3.every(p => p <= 0)) tags.push('losing_streak');
+  if (last3.length >= 2 && last3.every(p => p > 0))  tags.push('winning_streak');
+  if (wr >= 0.70 && total > 0)                        tags.push('overconfident');
+  if (wr < 0.40)                                      tags.push('low_win_rate');
+  if (isFinite(rr) && rr < 1.0 && avgLoss > 0)       tags.push('poor_rr');
+  if (total < 0)                                      tags.push('overall_loss');
+  if (wr < 0.4 && total < 0)                          tags.push('fear');
+  if (trades.length < 5)                              tags.push('new_trader');
+  if (wr >= 0.5 && rr >= 1.2 && total > 0)           tags.push('doing_well');
+  if (!tags.includes('losing_streak') && !tags.includes('winning_streak') && wr >= 0.35 && wr < 0.65) tags.push('inconsistent');
+  if (total < 0 && !tags.includes('low_win_rate'))    tags.push('blame');
+  return tags;
+}
+
+// ─── Quote picker ─────────────────────────────────────────────────────────
+function pickQuote(situationTags) {
+  const priority = ['losing_streak','winning_streak','overconfident','poor_rr','fear','low_win_rate','overall_loss','doing_well','inconsistent','new_trader','blame'];
+  for (const tag of priority) {
+    if (!situationTags.includes(tag)) continue;
+    const pool = ZONE_QUOTES.filter(q => q.tags.includes(tag));
+    if (pool.length) return pool[Math.floor(Math.random() * pool.length)];
+  }
+  return ZONE_QUOTES[Math.floor(Math.random() * ZONE_QUOTES.length)];
+}
+
+function generateFeedback() {
+  const fb = document.getElementById('feedback-body');
+  if (trades.length < 2) {
+    fb.innerHTML = '<div style="color:var(--muted);font-style:italic">Log at least 2 trades and PalBot will analyse your patterns here.</div>';
+    return;
+  }
+
+  const total  = trades.reduce((s,t) => s+computePnL(t), 0);
+  const wins   = trades.filter(t => computePnL(t) > 0);
+  const losses = trades.filter(t => computePnL(t) <= 0);
+  const wr     = (wins.length / trades.length * 100).toFixed(0);
+  const avgWin = wins.length   ? wins.reduce((s,t)=>s+computePnL(t),0)/wins.length   : 0;
+  const avgLos = losses.length ? Math.abs(losses.reduce((s,t)=>s+computePnL(t),0)/losses.length) : 0;
+  const rr     = avgLos ? (avgWin/avgLos).toFixed(2) : '∞';
+
+  const longTrades  = trades.filter(t=>t.dir==='LONG');
+  const shortTrades = trades.filter(t=>t.dir==='SHORT');
+  const longPnl     = longTrades.reduce((s,t)=>s+computePnL(t),0);
+  const shortPnl    = shortTrades.reduce((s,t)=>s+computePnL(t),0);
+  const betterDir   = (longTrades.length&&shortTrades.length)
+    ? (longPnl/longTrades.length > shortPnl/Math.max(shortTrades.length,1) ? 'LONG' : 'SHORT')
+    : (longTrades.length ? 'LONG' : 'SHORT');
+
+  const tips = [];
+  if (+wr >= 60) tips.push(`<strong>Strong win rate of ${wr}%</strong> — you are reading market direction well. Focus on maximising size in high-conviction setups.`);
+  else if (+wr >= 40) tips.push(`<strong>Win rate is ${wr}%</strong> — solid but room to grow. Review your losing trades for common entry triggers you should filter out.`);
+  else tips.push(`<strong>Win rate at ${wr}%</strong> — below 40%. Consider tightening your entry criteria or paper-trading a new setup before going live.`);
+
+  if (parseFloat(rr) >= 1.5) tips.push(`<strong>Risk/reward of ${rr}:1</strong> — excellent. Even with a lower win rate you will be profitable long-term at this ratio.`);
+  else if (parseFloat(rr) >= 1) tips.push(`<strong>Risk/reward of ${rr}:1</strong> — respectable. Aim for 1.5:1 or above to build a more robust edge.`);
+  else tips.push(`<strong>Risk/reward of ${rr}:1</strong> — winners are smaller than losers. Consider cutting losses earlier or letting winners run longer.`);
+
+  if (longTrades.length && shortTrades.length) {
+    tips.push(`<strong>${betterDir} trades outperform</strong> your ${betterDir==='LONG'?'SHORT':'LONG'} positions. Consider biasing your book toward the stronger direction.`);
+  }
+
+  if (total >= 0) tips.push(`Overall you are <strong>up $${total.toFixed(2)}</strong> — great start. Stay consistent and keep journalling every trade.`);
+  else tips.push(`You are currently <strong>down $${Math.abs(total).toFixed(2)}</strong>. Review your biggest losses for pattern overlap and reduce position size until edge is confirmed.`);
+
+  // ── Emotion analysis ──
+  const emoData = analyseEmotions();
+  let emoHtml   = '';
+  if (emoData.length) {
+    const maxCount = emoData[0].count;
+
+    // Flag dangerous patterns (emo with win rate < 40% and at least 2 trades)
+    const dangerous = emoData.filter(e => e.count >= 2 && (e.wins / e.count) < 0.4);
+    // Flag positive patterns (emo with win rate >= 60% and at least 2 trades)
+    const positive  = emoData.filter(e => e.count >= 2 && (e.wins / e.count) >= 0.6);
+
+    const topEmotions = emoData.slice(0, 5); // show top 5
+
+    const bars = topEmotions.map(e => {
+      const wr   = e.count ? (e.wins / e.count * 100).toFixed(0) : 0;
+      const col  = wr >= 55 ? 'var(--green)' : wr >= 40 ? 'var(--gold)' : 'var(--red)';
+      const pct  = (e.count / maxCount * 100).toFixed(0);
+      return `<div class="emo-bar-row">
+        <div class="emo-bar-top">
+          <span class="emo-bar-name">${e.label}</span>
+          <span class="emo-bar-stat">${e.count}× &nbsp;·&nbsp; <span style="color:${col}">${wr}% WR</span></span>
+        </div>
+        <div class="emo-track"><div class="emo-fill" style="width:${pct}%;background:${col}"></div></div>
+      </div>`;
+    }).join('');
+
+    let patternNotes = '';
+    if (dangerous.length) {
+      const names = dangerous.map(e => `<strong>${e.label}</strong>`).join(', ');
+      patternNotes += `<div class="feedback-item" style="margin-top:8px"><div class="feedback-dot" style="background:var(--red)"></div><div>⚠️ When trading with ${names} you lose more than 60% of the time. Recognise this state and step back before entering.</div></div>`;
+    }
+    if (positive.length) {
+      const names = positive.map(e => `<strong>${e.label}</strong>`).join(', ');
+      patternNotes += `<div class="feedback-item" style="margin-top:4px"><div class="feedback-dot" style="background:var(--green)"></div><div>✅ Your best results come when you feel ${names}. Aim to trade only from this state.</div></div>`;
+    }
+
+    emoHtml = `<hr class="quote-divider">
+      <div style="font-size:.65rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">🧠 Emotion Tracker</div>
+      <div class="emo-insight">${bars}</div>
+      ${patternNotes}`;
+  }
+
+  // ── Confidence analysis ──
+  const confData = analyseConfidence();
+  let confHtml = '';
+  if (confData) {
+    const lines = [];
+    if (confData.avgWin !== null && confData.avgLoss !== null) {
+      lines.push(`Your <strong>winning trades averaged confidence ${confData.avgWin.toFixed(1)}</strong> vs <strong>${confData.avgLoss.toFixed(1)}</strong> on losing trades.`);
+      if (confData.avgWin > confData.avgLoss + 0.5) {
+        lines.push('High conviction is paying off — keep trading only when you feel genuinely prepared.');
+      } else if (confData.avgLoss > confData.avgWin + 0.5) {
+        lines.push('⚠️ You tend to lose when confidence is <em>higher</em>. This may signal overconfidence on poor setups — be extra critical when you feel very sure.');
+      } else {
+        lines.push('Confidence level has little correlation with your outcomes yet. Keep logging to reveal patterns.');
+      }
+    } else if (confData.avgWin !== null) {
+      lines.push(`Winning trades logged with average confidence <strong>${confData.avgWin.toFixed(1)}</strong>.`);
+    } else if (confData.avgLoss !== null) {
+      lines.push(`Losing trades logged with average confidence <strong>${confData.avgLoss.toFixed(1)}</strong>.`);
+    }
+    const bucketRow = confData.buckets.map(b =>
+      `<span style="margin-right:12px;white-space:nowrap"><strong>${b.label}</strong>: ${b.wr}% WR <span style="color:var(--muted)">(${b.total})</span></span>`
+    ).join('');
+    if (bucketRow) lines.push(`Breakdown: <span style="font-size:.78rem">${bucketRow}</span>`);
+
+    confHtml = `<hr class="quote-divider">
+      <div style="font-size:.65rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">⚡ Confidence Insights</div>
+      ${lines.map(l=>`<div class="feedback-item"><div class="feedback-dot" style="background:var(--gold)"></div><div>${l}</div></div>`).join('')}`;
+  }
+
+  // ── Quote matching ──
+  const situations = detectSituations();
+  // also push emotion-based situations
+  if (emoData.some(e => e.label.includes('Fear') && e.count >= 2))      situations.push('fear');
+  if (emoData.some(e => e.label.includes('FOMO') && e.count >= 2))      situations.push('fear');
+  if (emoData.some(e => e.label.includes('Revenge') && e.count >= 2))   situations.push('overall_loss');
+  if (emoData.some(e => e.label.includes('Confident') && e.count >= 2)) situations.push('overconfident');
+  // push confidence-based situations
+  if (confData && confData.avgLoss !== null && confData.avgWin !== null && confData.avgLoss > confData.avgWin + 1) {
+    situations.push('overconfident');
+  }
+
+  const quote = pickQuote(situations);
+
+  fb.innerHTML =
+    tips.map(t => `<div class="feedback-item"><div class="feedback-dot"></div><div>${t}</div></div>`).join('') +
+    emoHtml +
+    confHtml +
+    `<hr class="quote-divider">
+     <div class="quote-block">
+       <div class="quote-icon">📖</div>
+       <div class="quote-text">"${quote.text}"</div>
+       <div class="quote-source">— Mark Douglas, Trading in the Zone</div>
+     </div>`;
+}
+
+function persist() { localStorage.setItem('tp_trades', JSON.stringify(trades)); }
+
+function refresh() { updateStats(); renderTable(); updateChart(); generateFeedback(); }
+
+// ─── Add / Delete ─────────────────────────────────────────────────────────
+function addTrade() {
+  const sym   = document.getElementById('f-symbol').value.trim();
+  const date  = document.getElementById('f-date').value;
+  const dir   = document.getElementById('f-dir').value;
+  const size  = parseFloat(document.getElementById('f-size').value);
+  const entry = parseFloat(document.getElementById('f-entry').value);
+  const exit  = parseFloat(document.getElementById('f-exit').value);
+  const notes = document.getElementById('f-notes').value.trim();
+
+  if (!sym || !date || isNaN(size) || isNaN(entry) || isNaN(exit)) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+  const pnlRaw      = parseFloat(document.getElementById('f-pnl').value);
+  const realizedPnl = isNaN(pnlRaw) ? null : pnlRaw;
+  const pointValue  = parseFloat(document.getElementById('f-pointval').value) || 1;
+  const emotions    = getSelectedEmotions();
+  const confidence  = parseInt(document.getElementById('f-confidence').value) || 5;
+  trades.push({ symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence, screenshot: pendingScreenshot || null });
+  persist();
+  closeModal();
+  refresh();
+}
+
+function deleteTrade(idx) {
+  if (!confirm('Remove this trade?')) return;
+  trades.splice(idx, 1);
+  persist();
+  refresh();
+}
+
+// ─── Modal ────────────────────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  clearScreenshot();
+  resetPnlField();
+  resetEmotions();
+  resetConfidence();
+}
+document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+refresh();
+updateSaber(5);
+</script>
+</body>
+</html>
