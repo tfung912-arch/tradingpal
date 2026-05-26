@@ -12,7 +12,7 @@
 
   // ── ImgBB API key for free screenshot hosting (imgbb.com) ───────────────
   // Get your free key at: https://api.imgbb.com/
-  const IMGBB_API_KEY = 'PASTE_YOUR_IMGBB_KEY_HERE';
+  const IMGBB_API_KEY = '50be6fdeb44cfdbbcbea70ed59218a82';
 
   if (!firebase.apps.length) firebase.initializeApp(CFG);
   const auth = firebase.auth();
@@ -239,7 +239,6 @@
       // Strip the data URL header — ImgBB wants raw base64
       const base64 = compressed.split(';base64,')[1];
       const form   = new FormData();
-      form.append('key',   IMGBB_API_KEY);
       form.append('image', base64);
       form.append('name',  `tp_${docId}`);
 
@@ -248,22 +247,26 @@
 
       let resp;
       try {
-        resp = await fetch('https://api.imgbb.com/1/upload', {
+        resp = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
           method: 'POST', body: form, signal: controller.signal
         });
       } catch (e) {
         clearTimeout(timerId);
-        throw new Error(e.name === 'AbortError'
+        const msg = e.name === 'AbortError'
           ? 'Upload timed out after 30 s — check your internet connection.'
-          : `Network error: ${e.message}`);
+          : `Network error: ${e.message}`;
+        console.error('[TradingPal] Screenshot upload failed:', e);
+        throw new Error(msg);
       }
       clearTimeout(timerId);
 
       if (onProgress) onProgress(90);
 
-      if (!resp.ok) throw new Error(`ImgBB returned ${resp.status}. Check your API key.`);
       const json = await resp.json();
-      if (!json.success) throw new Error(`ImgBB error: ${json.error?.message || JSON.stringify(json)}`);
+      console.log('[TradingPal] ImgBB response:', resp.status, json);
+      if (!resp.ok || !json.success) {
+        throw new Error(`ImgBB error ${resp.status}: ${json.error?.message || json.status_txt || JSON.stringify(json)}`);
+      }
 
       if (onProgress) onProgress(100);
       return json.data.url;
@@ -379,7 +382,7 @@
     t.style.cssText =
       'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
       'padding:12px 24px;border-radius:10px;z-index:9999;font-size:.82rem;font-weight:700;' +
-      'white-space:nowrap;max-width:90vw;text-align:center;' +
+      'white-space:pre-wrap;max-width:520px;width:90vw;text-align:center;word-break:break-word;' +
       (warn
         ? 'background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#f59e0b;'
         : 'background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#10b981;');
