@@ -11,19 +11,17 @@
   <script src="firebase-app.js"></script>
   <style>
     :root {
-      --bg-deep:     #06061a;
-      --bg-card:     rgba(15, 15, 40, 0.85);
-      --bg-glass:    rgba(255, 255, 255, 0.04);
-      --border:      rgba(120, 80, 255, 0.25);
-      --purple:      #7c3aed;
-      --purple-glow: rgba(124, 58, 237, 0.45);
-      --cyan:        #06d6f3;
-      --cyan-glow:   rgba(6, 214, 243, 0.35);
-      --green:       #00f5a0;
-      --red:         #ff4d6d;
-      --text:        #e2e8f0;
-      --muted:       #7b85a3;
-      --gold:        #fbbf24;
+      --bg-deep:     #0d1117;
+      --bg-card:     rgba(22, 27, 34, 0.95);
+      --bg-glass:    rgba(255, 255, 255, 0.03);
+      --border:      rgba(48, 54, 61, 0.9);
+      --accent:      #2563eb;
+      --blue:        #3b82f6;
+      --green:       #10b981;
+      --red:         #ef4444;
+      --text:        #e6edf3;
+      --muted:       #8b949e;
+      --gold:        #f59e0b;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -51,7 +49,7 @@
     .logo {
       display: flex; align-items: center; gap: 12px;
       font-size: 1.5rem; font-weight: 700; letter-spacing: .04em;
-      color: var(--cyan); text-shadow: 0 0 18px var(--cyan-glow);
+      color: var(--blue);
       text-decoration: none;
     }
     .logo svg { width: 36px; height: 36px; }
@@ -62,10 +60,10 @@
       color: var(--muted); cursor: pointer; transition: all .2s;
       text-decoration: none; display: inline-block;
     }
-    .pill:hover { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 12px var(--cyan-glow); }
+    .pill:hover { border-color: var(--blue); color: var(--blue); }
     .pill.active {
-      border-color: var(--cyan); color: var(--cyan);
-      background: rgba(6,214,243,.08); box-shadow: 0 0 12px var(--cyan-glow);
+      border-color: var(--blue); color: var(--blue);
+      background: rgba(59,130,246,.08);
     }
 
     /* ── Page title bar ────────────────────────────────────── */
@@ -91,9 +89,9 @@
       transition: border-color .2s, box-shadow .2s;
     }
     .filter-bar input:focus, .filter-bar select:focus {
-      border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow);
+      border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,.12);
     }
-    .filter-bar select option { background: #0f0f28; }
+    .filter-bar select option { background: #161b22; }
     .filter-bar input[type="text"] { min-width: 180px; }
     .filter-bar input[type="date"] { min-width: 140px; }
     .filter-label { font-size: .7rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
@@ -110,7 +108,7 @@
       border: 1px solid var(--border); background: transparent;
       color: var(--muted); cursor: pointer; transition: all .2s; white-space: nowrap;
     }
-    .sort-btn.active { border-color: var(--purple); color: var(--purple); background: rgba(124,58,237,.1); }
+    .sort-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(37,99,235,.1); }
 
     /* ── Count bar ─────────────────────────────────────────── */
     .count-bar {
@@ -131,20 +129,20 @@
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 18px; overflow: hidden;
       backdrop-filter: blur(12px);
-      transition: transform .2s, box-shadow .25s;
+      transition: transform .2s, border-color .25s;
       display: flex; flex-direction: column; cursor: pointer;
     }
     .trade-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 8px 40px var(--purple-glow);
+      transform: translateY(-2px);
+      border-color: rgba(59,130,246,.35);
     }
-    .trade-card.win  { border-color: rgba(0,245,160,.3); }
-    .trade-card.loss { border-color: rgba(255,77,109,.22); }
+    .trade-card.win  { border-color: rgba(16,185,129,.25); }
+    .trade-card.loss { border-color: rgba(239,68,68,.2); }
 
     /* Screenshot area */
     .card-screenshot {
       width: 100%; aspect-ratio: 16/7; overflow: hidden;
-      background: linear-gradient(135deg, rgba(124,58,237,.08), rgba(6,214,243,.05));
+      background: rgba(22,27,34,.8);
       position: relative; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
     }
@@ -181,8 +179,8 @@
       padding: 5px 12px; border-radius: 999px; font-size: .85rem; font-weight: 700;
       white-space: nowrap;
     }
-    .pnl-chip.pos { background: rgba(0,245,160,.12); color: var(--green); box-shadow: 0 0 10px rgba(0,245,160,.2); }
-    .pnl-chip.neg { background: rgba(255,77,109,.12); color: var(--red);   box-shadow: 0 0 10px rgba(255,77,109,.2); }
+    .pnl-chip.pos { background: rgba(16,185,129,.12); color: var(--green); }
+    .pnl-chip.neg { background: rgba(239,68,68,.12); color: var(--red); }
 
     .card-details {
       display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
@@ -195,11 +193,11 @@
       display: inline-block; padding: 3px 10px; border-radius: 6px;
       font-size: .7rem; font-weight: 700; letter-spacing: .04em;
     }
-    .badge.long  { background: rgba(0,245,160,.12); color: var(--green); }
-    .badge.short { background: rgba(255,77,109,.12); color: var(--red); }
+    .badge.long  { background: rgba(16,185,129,.12); color: var(--green); }
+    .badge.short { background: rgba(239,68,68,.12); color: var(--red); }
 
     .card-notes {
-      border-top: 1px solid rgba(120,80,255,.1); padding-top: 12px;
+      border-top: 1px solid rgba(48,54,61,.6); padding-top: 12px;
       font-size: .78rem; color: #9aa5be; line-height: 1.6;
     }
     .card-notes .notes-label {
@@ -219,9 +217,8 @@
     .empty-state a {
       display: inline-block; margin-top: 20px; padding: 10px 22px;
       border-radius: 10px; font-size: .85rem; font-weight: 700;
-      background: linear-gradient(135deg, var(--purple), #5b21b6);
+      background: var(--accent);
       color: #fff; text-decoration: none;
-      box-shadow: 0 0 16px var(--purple-glow);
     }
 
     /* ── Lightbox ──────────────────────────────────────────── */
@@ -236,7 +233,6 @@
     .lightbox-inner img {
       width: 100%; max-height: 75vh; object-fit: contain;
       border-radius: 14px; border: 1px solid var(--border);
-      box-shadow: 0 0 60px var(--purple-glow);
     }
     .lightbox-caption {
       margin-top: 14px; display: flex; gap: 16px; align-items: center;
@@ -246,23 +242,23 @@
     .lightbox-close {
       position: absolute; top: -14px; right: -14px;
       width: 32px; height: 32px; border-radius: 50%;
-      background: var(--purple); border: none; color: #fff;
+      background: var(--accent); border: none; color: #fff;
       font-size: 1rem; cursor: pointer; display: flex;
       align-items: center; justify-content: center;
-      box-shadow: 0 0 16px var(--purple-glow); transition: background .2s;
+      transition: background .2s;
     }
     .lightbox-close:hover { background: var(--red); }
     .lightbox-dl {
       padding: 7px 16px; border-radius: 8px; font-size: .78rem; font-weight: 600;
-      background: rgba(6,214,243,.1); border: 1px solid var(--cyan);
-      color: var(--cyan); cursor: pointer; text-decoration: none;
+      background: rgba(59,130,246,.1); border: 1px solid var(--blue);
+      color: var(--blue); cursor: pointer; text-decoration: none;
     }
-    .lightbox-dl:hover { background: rgba(6,214,243,.2); }
+    .lightbox-dl:hover { background: rgba(59,130,246,.2); }
 
     /* ── Scrollbar ─────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 99px; }
 
     /* ── Edit modal ─────────────────────────────────────────── */
     .modal-overlay {
@@ -272,12 +268,12 @@
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: rgba(12,12,35,.98); border: 1px solid var(--border);
+      background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 20px; padding: 32px 36px; width: min(620px, 100%);
       max-height: 88vh; overflow-y: auto;
-      box-shadow: 0 0 60px var(--purple-glow);
+      box-shadow: 0 24px 60px rgba(0,0,0,.5);
     }
-    .modal h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 24px; color: var(--cyan); }
+    .modal h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 24px; color: var(--text); }
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group.full { grid-column: 1 / -1; }
@@ -292,9 +288,9 @@
       transition: border-color .2s, box-shadow .2s;
     }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-      border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(6,214,243,.15);
+      border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,.12);
     }
-    .form-group select option { background: #0f0f28; }
+    .form-group select option { background: #161b22; }
     .form-group textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
     .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
     .btn-cancel {
@@ -305,11 +301,11 @@
     .btn-cancel:hover { border-color: var(--red); color: var(--red); }
     .submit-btn {
       padding: 10px 24px; border-radius: 10px; font-size: .85rem; font-weight: 700;
-      border: none; background: linear-gradient(135deg, var(--purple), #5b21b6);
+      border: none; background: var(--accent);
       color: #fff; cursor: pointer; font-family: inherit;
-      box-shadow: 0 0 16px var(--purple-glow); transition: opacity .2s;
+      transition: opacity .2s;
     }
-    .submit-btn:hover { opacity: .9; }
+    .submit-btn:hover { opacity: .88; }
     .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
     .edit-ss-preview { margin-top: 10px; position: relative; display: none; }
     .edit-ss-preview img {
@@ -328,7 +324,7 @@
       padding: 4px 10px; cursor: pointer; font-family: inherit;
       transition: all .2s;
     }
-    .card-edit-btn:hover { border-color: var(--purple); color: var(--purple); }
+    .card-edit-btn:hover { border-color: var(--blue); color: var(--blue); }
   </style>
 </head>
 <body>
@@ -343,11 +339,9 @@
   <header>
     <a class="logo" href="index.html">
       <svg viewBox="0 0 36 36" fill="none">
-        <circle cx="18" cy="18" r="17" stroke="#06d6f3" stroke-width="1.5" opacity=".4"/>
-        <path d="M8 24 L14 14 L20 19 L26 10" stroke="#06d6f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="26" cy="10" r="3" fill="#7c3aed"/>
-        <path d="M18 4 L19 2 L20 4" fill="#fbbf24" opacity=".8"/>
-        <path d="M28 8 L29 6 L30 8" fill="#fbbf24" opacity=".5"/>
+        <circle cx="18" cy="18" r="17" stroke="#3b82f6" stroke-width="1.5" opacity=".4"/>
+        <path d="M8 24 L14 14 L20 19 L26 10" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="26" cy="10" r="3" fill="#2563eb"/>
       </svg>
       TradingPal
     </a>
@@ -629,9 +623,9 @@ function renderCards(list) {
             : `<div class="no-notes">No notes recorded for this trade.</div>`}
         </div>
 
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(120,80,255,.1);display:flex;justify-content:space-between;align-items:center;">
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(48,54,61,.6);display:flex;justify-content:space-between;align-items:center;">
           <button class="card-edit-btn" onclick="event.stopPropagation();editTrade('${t.id}')">✏️ Edit</button>
-          <span style="font-size:.75rem;color:var(--cyan);font-weight:600;letter-spacing:.04em;">View Full Details →</span>
+          <span style="font-size:.75rem;color:var(--blue);font-weight:600;letter-spacing:.04em;">View Full Details →</span>
         </div>
       </div>`;
 

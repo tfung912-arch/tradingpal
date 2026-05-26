@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TradingPal — Your Cosmic Trading Journal</title>
+  <title>TradingPal — Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
@@ -12,20 +12,18 @@
   <script src="firebase-app.js"></script>
   <style>
     :root {
-      --bg-deep:     #06061a;
-      --bg-card:     rgba(15, 15, 40, 0.85);
-      --bg-glass:    rgba(255, 255, 255, 0.04);
-      --border:      rgba(120, 80, 255, 0.25);
-      --purple:      #7c3aed;
-      --purple-glow: rgba(124, 58, 237, 0.45);
-      --cyan:        #06d6f3;
-      --cyan-glow:   rgba(6, 214, 243, 0.35);
-      --green:       #00f5a0;
-      --green-dark:  #00c77a;
-      --red:         #ff4d6d;
-      --text:        #e2e8f0;
-      --muted:       #7b85a3;
-      --gold:        #fbbf24;
+      --bg-deep:     #0d1117;
+      --bg-card:     rgba(22, 27, 34, 0.95);
+      --bg-glass:    rgba(255, 255, 255, 0.03);
+      --border:      rgba(48, 54, 61, 0.9);
+      --accent:      #2563eb;
+      --blue:        #3b82f6;
+      --green:       #10b981;
+      --green-dark:  #059669;
+      --red:         #ef4444;
+      --text:        #e6edf3;
+      --muted:       #8b949e;
+      --gold:        #f59e0b;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,7 +51,7 @@
     .logo {
       display: flex; align-items: center; gap: 12px;
       font-size: 1.5rem; font-weight: 700; letter-spacing: .04em;
-      color: var(--cyan); text-shadow: 0 0 18px var(--cyan-glow);
+      color: var(--blue);
     }
     .logo svg { width: 36px; height: 36px; }
     .nav-pills { display: flex; gap: 8px; }
@@ -63,10 +61,9 @@
       color: var(--muted); cursor: pointer; transition: all .2s;
     }
     .pill:hover, .pill.active {
-      border-color: var(--cyan); color: var(--cyan);
-      box-shadow: 0 0 12px var(--cyan-glow);
+      border-color: var(--blue); color: var(--blue);
     }
-    .pill.active { background: rgba(6, 214, 243, 0.08); }
+    .pill.active { background: rgba(59, 130, 246, 0.08); }
 
     /* ── Section title ───────────────────────────────────────────── */
     .section-title {
@@ -84,16 +81,16 @@
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 16px; padding: 22px 20px;
       backdrop-filter: blur(12px);
-      transition: box-shadow .25s;
+      transition: border-color .25s;
     }
-    .stat-card:hover { box-shadow: 0 0 24px var(--purple-glow); }
+    .stat-card:hover { border-color: rgba(59,130,246,.35); }
 
     .stat-label { font-size: .72rem; color: var(--muted); margin-bottom: 8px; letter-spacing: .06em; text-transform: uppercase; }
     .stat-value { font-size: 1.7rem; font-weight: 700; letter-spacing: -.01em; }
-    .stat-value.up   { color: var(--green); text-shadow: 0 0 14px rgba(0,245,160,.35); }
-    .stat-value.down { color: var(--red);   text-shadow: 0 0 14px rgba(255,77,109,.35); }
-    .stat-value.gold { color: var(--gold);  text-shadow: 0 0 14px rgba(251,191,36,.35); }
-    .stat-value.cyan { color: var(--cyan);  text-shadow: 0 0 14px var(--cyan-glow); }
+    .stat-value.up   { color: var(--green); }
+    .stat-value.down { color: var(--red); }
+    .stat-value.gold { color: var(--gold); }
+    .stat-value.cyan { color: var(--blue); }
     .stat-delta { font-size: .75rem; margin-top: 6px; }
     .stat-delta.up   { color: var(--green); }
     .stat-delta.down { color: var(--red); }
@@ -114,8 +111,8 @@
       color: var(--muted); cursor: pointer; transition: all .2s;
     }
     .range-btn.active, .range-btn:hover {
-      border-color: var(--purple); color: var(--purple);
-      background: rgba(124,58,237,.1);
+      border-color: var(--accent); color: var(--accent);
+      background: rgba(37,99,235,.1);
     }
     .chart-wrap { position: relative; height: 280px; }
 
@@ -131,11 +128,11 @@
     .journal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
     .add-btn {
       padding: 8px 18px; border-radius: 10px; font-size: .8rem; font-weight: 700;
-      background: linear-gradient(135deg, var(--purple), #5b21b6);
+      background: var(--accent);
       border: none; color: #fff; cursor: pointer;
-      box-shadow: 0 0 16px var(--purple-glow); transition: transform .15s, box-shadow .15s;
+      transition: opacity .15s, transform .15s;
     }
-    .add-btn:hover { transform: translateY(-1px); box-shadow: 0 0 28px var(--purple-glow); }
+    .add-btn:hover { opacity: .88; transform: translateY(-1px); }
 
     table { width: 100%; border-collapse: collapse; font-size: .82rem; }
     thead th {
@@ -145,13 +142,13 @@
     }
     tbody tr { transition: background .15s; }
     tbody tr:hover { background: rgba(255,255,255,.03); }
-    tbody td { padding: 11px 12px; border-bottom: 1px solid rgba(120,80,255,.08); }
+    tbody td { padding: 11px 12px; border-bottom: 1px solid rgba(48,54,61,.5); }
     .badge {
       display: inline-block; padding: 3px 9px; border-radius: 6px;
       font-size: .7rem; font-weight: 700; letter-spacing: .04em;
     }
-    .badge.long  { background: rgba(0,245,160,.12); color: var(--green); }
-    .badge.short { background: rgba(255,77,109,.12); color: var(--red); }
+    .badge.long  { background: rgba(16,185,129,.12); color: var(--green); }
+    .badge.short { background: rgba(239,68,68,.12); color: var(--red); }
     .pnl.pos { color: var(--green); font-weight: 700; }
     .pnl.neg { color: var(--red);   font-weight: 700; }
     .del-btn {
@@ -179,50 +176,49 @@
       transition: border-color .2s, box-shadow .2s;
     }
     input:focus, select:focus, textarea:focus {
-      border-color: var(--cyan); box-shadow: 0 0 10px var(--cyan-glow);
+      border-color: var(--blue); box-shadow: 0 0 0 3px rgba(59,130,246,.12);
     }
-    select option { background: #0f0f28; }
+    select option { background: #161b22; }
     textarea { resize: vertical; min-height: 64px; }
     .submit-btn {
       width: 100%; margin-top: 14px; padding: 11px;
       border-radius: 10px; font-size: .875rem; font-weight: 700;
-      background: linear-gradient(135deg, #06d6f3, #7c3aed);
+      background: var(--accent);
       border: none; color: #fff; cursor: pointer;
-      box-shadow: 0 0 20px rgba(6,214,243,.3);
       transition: opacity .2s, transform .15s;
     }
-    .submit-btn:hover { opacity: .9; transform: translateY(-1px); }
+    .submit-btn:hover { opacity: .88; transform: translateY(-1px); }
 
     /* ── AI Feedback card ────────────────────────────────────────── */
     .feedback-card {
-      background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(6,214,243,.07));
-      border: 1px solid rgba(124,58,237,.35);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
       border-radius: 20px; padding: 24px; backdrop-filter: blur(12px);
       flex: 1;
     }
     .feedback-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
     .ai-icon {
-      width: 34px; height: 34px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      width: 34px; height: 34px; border-radius: 8px;
+      background: var(--accent);
       display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; box-shadow: 0 0 16px var(--purple-glow);
+      font-size: 1rem;
       flex-shrink: 0;
     }
-    .feedback-title { font-size: .95rem; font-weight: 700; color: var(--cyan); }
+    .feedback-title { font-size: .95rem; font-weight: 700; color: var(--blue); }
     .feedback-subtitle { font-size: .72rem; color: var(--muted); }
     .feedback-body { font-size: .82rem; line-height: 1.7; color: #b0bcd4; }
     .feedback-body strong { color: var(--text); }
     .feedback-item { display: flex; gap: 8px; margin-bottom: 10px; }
-    .feedback-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); margin-top: 7px; flex-shrink: 0; }
+    .feedback-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--blue); margin-top: 7px; flex-shrink: 0; }
 
     /* ── PalBot quote block ───────────────────────────────────────── */
     .quote-divider {
-      border: none; border-top: 1px solid rgba(120,80,255,.15);
+      border: none; border-top: 1px solid rgba(48,54,61,.8);
       margin: 14px 0;
     }
     .quote-block {
-      background: rgba(124,58,237,.08);
-      border-left: 3px solid var(--purple);
+      background: rgba(37,99,235,.06);
+      border-left: 3px solid var(--accent);
       border-radius: 0 10px 10px 0;
       padding: 12px 14px; margin-top: 4px;
     }
@@ -232,14 +228,14 @@
       font-style: italic; margin-bottom: 8px;
     }
     .quote-source {
-      font-size: .68rem; color: var(--purple); font-weight: 700;
+      font-size: .68rem; color: var(--accent); font-weight: 700;
       letter-spacing: .06em; text-transform: uppercase;
     }
 
     /* ── Scrollbar ───────────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 99px; }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 99px; }
 
     /* ── Modal overlay ───────────────────────────────────────────── */
     .modal-overlay {
@@ -252,9 +248,9 @@
       background: var(--bg-card); border: 1px solid var(--border);
       border-radius: 20px; padding: 32px; width: 100%; max-width: 560px;
       max-height: 92vh; overflow-y: auto;
-      box-shadow: 0 0 60px var(--purple-glow);
+      box-shadow: 0 24px 60px rgba(0,0,0,.5);
     }
-    .modal h3 { margin-bottom: 20px; color: var(--cyan); }
+    .modal h3 { margin-bottom: 20px; color: var(--text); }
     .modal-footer { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
     .btn-cancel {
       padding: 8px 18px; border-radius: 8px; font-size: .82rem;
@@ -271,19 +267,19 @@
       color: var(--muted); cursor: pointer; transition: all .18s;
       user-select: none;
     }
-    .emo-chip:hover { border-color: rgba(124,58,237,.5); color: var(--text); }
+    .emo-chip:hover { border-color: rgba(59,130,246,.5); color: var(--text); }
     .emo-chip.selected {
-      background: rgba(124,58,237,.18); border-color: var(--purple);
-      color: #fff; box-shadow: 0 0 8px var(--purple-glow);
+      background: rgba(37,99,235,.18); border-color: var(--accent);
+      color: #fff;
     }
     .emo-custom-wrap { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
     .emo-custom-wrap input { flex: 1; }
     .emo-add-btn {
       padding: 7px 14px; border-radius: 8px; font-size: .78rem; font-weight: 700;
-      background: rgba(124,58,237,.15); border: 1px solid var(--purple);
-      color: var(--purple); cursor: pointer; white-space: nowrap; transition: all .18s;
+      background: rgba(37,99,235,.12); border: 1px solid var(--accent);
+      color: var(--blue); cursor: pointer; white-space: nowrap; transition: all .18s;
     }
-    .emo-add-btn:hover { background: rgba(124,58,237,.3); }
+    .emo-add-btn:hover { background: rgba(37,99,235,.25); }
 
     /* ── Confidence lightsaber slider ───────────────────────────── */
     .saber-wrap { padding: 2px 0 8px; }
@@ -352,24 +348,22 @@
     }
     .pnl-field-wrap.profit .pnl-prefix { color: var(--green); }
     .pnl-field-wrap.profit input {
-      border-color: rgba(0,245,160,.5);
-      background: rgba(0,245,160,.07);
+      border-color: rgba(16,185,129,.5);
+      background: rgba(16,185,129,.07);
       color: var(--green);
-      box-shadow: 0 0 12px rgba(0,245,160,.15);
     }
     .pnl-field-wrap.loss .pnl-prefix { color: var(--red); }
     .pnl-field-wrap.loss input {
-      border-color: rgba(255,77,109,.5);
-      background: rgba(255,77,109,.07);
+      border-color: rgba(239,68,68,.5);
+      background: rgba(239,68,68,.07);
       color: var(--red);
-      box-shadow: 0 0 12px rgba(255,77,109,.15);
     }
     .pnl-auto-badge {
       position: absolute; right: 10px;
       font-size: .62rem; font-weight: 700; letter-spacing: .08em;
       text-transform: uppercase; padding: 2px 7px; border-radius: 4px;
-      background: rgba(6,214,243,.12); color: var(--cyan);
-      border: 1px solid rgba(6,214,243,.25); pointer-events: none;
+      background: rgba(59,130,246,.12); color: var(--blue);
+      border: 1px solid rgba(59,130,246,.25); pointer-events: none;
       opacity: 0; transition: opacity .2s;
     }
     .pnl-field-wrap.auto-calc .pnl-auto-badge { opacity: 1; }
@@ -384,8 +378,8 @@
       border: 1px solid var(--border); background: var(--bg-glass);
       color: var(--muted); cursor: pointer; transition: all .18s;
     }
-    .preset-chip:hover { border-color: var(--cyan); color: var(--cyan); background: rgba(6,214,243,.07); }
-    .preset-chip.selected { border-color: var(--cyan); color: var(--cyan); background: rgba(6,214,243,.12); }
+    .preset-chip:hover { border-color: var(--blue); color: var(--blue); background: rgba(59,130,246,.08); }
+    .preset-chip.selected { border-color: var(--blue); color: var(--blue); background: rgba(59,130,246,.12); }
 
     /* ── Screenshot upload zone ──────────────────────────────────── */
     .upload-zone {
@@ -394,7 +388,7 @@
       transition: border-color .2s, background .2s; position: relative;
     }
     .upload-zone:hover, .upload-zone.drag-over {
-      border-color: var(--cyan); background: rgba(6,214,243,.05);
+      border-color: var(--blue); background: rgba(59,130,246,.05);
     }
     .upload-zone input[type="file"] {
       position: absolute; inset: 0; opacity: 0; cursor: pointer;
@@ -425,8 +419,8 @@
       opacity: .25; transition: opacity .2s, filter .2s;
       vertical-align: middle;
     }
-    .ss-btn.has-img { opacity: 1; filter: drop-shadow(0 0 6px var(--cyan)); }
-    .ss-btn.has-img:hover { filter: drop-shadow(0 0 12px var(--cyan)); }
+    .ss-btn.has-img { opacity: 1; filter: drop-shadow(0 0 4px var(--blue)); }
+    .ss-btn.has-img:hover { opacity: .8; }
 
     /* ── Lightbox ────────────────────────────────────────────────── */
     .lightbox {
@@ -443,7 +437,6 @@
     .lightbox-inner img {
       width: 100%; max-height: 75vh; object-fit: contain;
       border-radius: 12px; border: 1px solid var(--border);
-      box-shadow: 0 0 60px var(--purple-glow);
     }
     .lightbox-caption {
       margin-top: 14px; display: flex; gap: 16px; align-items: center;
@@ -453,19 +446,19 @@
     .lightbox-close {
       position: absolute; top: -14px; right: -14px;
       width: 32px; height: 32px; border-radius: 50%;
-      background: var(--purple); border: none; color: #fff;
+      background: var(--accent); border: none; color: #fff;
       font-size: 1rem; cursor: pointer; display: flex;
       align-items: center; justify-content: center;
-      box-shadow: 0 0 16px var(--purple-glow); transition: background .2s;
+      transition: background .2s;
     }
     .lightbox-close:hover { background: var(--red); }
     .lightbox-dl {
       padding: 7px 16px; border-radius: 8px; font-size: .78rem; font-weight: 600;
-      background: rgba(6,214,243,.1); border: 1px solid var(--cyan);
-      color: var(--cyan); cursor: pointer; text-decoration: none;
+      background: rgba(59,130,246,.1); border: 1px solid var(--blue);
+      color: var(--blue); cursor: pointer; text-decoration: none;
       transition: background .2s;
     }
-    .lightbox-dl:hover { background: rgba(6,214,243,.2); }
+    .lightbox-dl:hover { background: rgba(59,130,246,.2); }
   </style>
 </head>
 <body>
@@ -480,11 +473,9 @@
   <header>
     <a class="logo" href="index.html" style="text-decoration:none">
       <svg viewBox="0 0 36 36" fill="none">
-        <circle cx="18" cy="18" r="17" stroke="#06d6f3" stroke-width="1.5" opacity=".4"/>
-        <path d="M8 24 L14 14 L20 19 L26 10" stroke="#06d6f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="26" cy="10" r="3" fill="#7c3aed"/>
-        <path d="M18 4 L19 2 L20 4" fill="#fbbf24" opacity=".8"/>
-        <path d="M28 8 L29 6 L30 8" fill="#fbbf24" opacity=".5"/>
+        <circle cx="18" cy="18" r="17" stroke="#3b82f6" stroke-width="1.5" opacity=".4"/>
+        <path d="M8 24 L14 14 L20 19 L26 10" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="26" cy="10" r="3" fill="#2563eb"/>
       </svg>
       TradingPal
     </a>
@@ -600,7 +591,7 @@
 <!-- ── Add Trade Modal ──────────────────────────────── -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
-    <h3>🛸 Log New Trade</h3>
+    <h3>Log New Trade</h3>
     <div class="form-grid">
       <div class="form-group">
         <label>Symbol</label>
@@ -674,7 +665,7 @@
         </div>
       </div>
       <div class="form-group full">
-        <label style="font-size:.88rem;font-weight:700;color:var(--cyan);text-transform:none;letter-spacing:.02em">⚡ Confidence Level <span style="color:var(--muted);font-size:.78rem;font-weight:500">— how convicted were you in this trade?</span></label>
+        <label style="font-size:.88rem;font-weight:700;color:var(--blue);text-transform:none;letter-spacing:.02em">Confidence Level <span style="color:var(--muted);font-size:.78rem;font-weight:500">— how convicted were you in this trade?</span></label>
         <div class="saber-wrap">
           <div class="saber-level-display">
             <span class="saber-num" id="saber-num">5</span>
@@ -841,20 +832,19 @@ function updateSaber(val) {
   if (!numEl) return;
 
   let color, glow, label;
-  if (val <= 3)      { color = '#ff4d6d'; glow = 'rgba(255,77,109,.85)';  label = 'Low — Uncertain'; }
-  else if (val <= 6) { color = '#fbbf24'; glow = 'rgba(251,191,36,.85)';  label = 'Medium Confidence'; }
-  else if (val <= 8) { color = '#06d6f3'; glow = 'rgba(6,214,243,.85)';   label = 'High Confidence'; }
-  else               { color = '#00f5a0'; glow = 'rgba(0,245,160,.85)';   label = 'Peak Conviction'; }
+  if (val <= 3)      { color = '#ef4444'; label = 'Low — Uncertain'; }
+  else if (val <= 6) { color = '#f59e0b'; label = 'Medium Confidence'; }
+  else if (val <= 8) { color = '#3b82f6'; label = 'High Confidence'; }
+  else               { color = '#10b981'; label = 'Peak Conviction'; }
 
-  numEl.textContent      = val;
-  numEl.style.color      = color;
-  numEl.style.textShadow = `0 0 20px ${glow}, 0 0 50px ${glow}`;
-  tierEl.textContent     = label;
-  tierEl.style.color     = color;
+  numEl.textContent  = val;
+  numEl.style.color  = color;
+  tierEl.textContent = label;
+  tierEl.style.color = color;
 
   const pct = ((val - 1) / 9) * 100;
   track.style.background = `linear-gradient(to right, ${color} 0%, ${color} ${pct}%, rgba(255,255,255,.07) ${pct}%)`;
-  track.style.boxShadow  = `0 0 12px ${glow}`;
+  track.style.boxShadow  = 'none';
 }
 
 function resetConfidence() {
@@ -963,17 +953,17 @@ function closeLightbox(e) {
 // ─── Chart.js setup ──────────────────────────────────────────────────────
 const chartCtx = document.getElementById('pnlChart').getContext('2d');
 const gradient = chartCtx.createLinearGradient(0, 0, 0, 280);
-gradient.addColorStop(0, 'rgba(6,214,243,0.22)');
-gradient.addColorStop(1, 'rgba(6,214,243,0)');
+gradient.addColorStop(0, 'rgba(59,130,246,0.18)');
+gradient.addColorStop(1, 'rgba(59,130,246,0)');
 
 const pnlChart = new Chart(chartCtx, {
   type: 'line',
   data: { labels: [], datasets: [{
     label: 'Cumulative P&L ($)',
     data: [],
-    borderColor: '#06d6f3',
+    borderColor: '#3b82f6',
     borderWidth: 2.5,
-    pointBackgroundColor: '#7c3aed',
+    pointBackgroundColor: '#2563eb',
     pointRadius: 4,
     pointHoverRadius: 6,
     fill: true,
@@ -985,22 +975,22 @@ const pnlChart = new Chart(chartCtx, {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'rgba(15,15,40,.95)',
-        borderColor: 'rgba(120,80,255,.35)',
+        backgroundColor: 'rgba(22,27,34,.98)',
+        borderColor: 'rgba(48,54,61,.9)',
         borderWidth: 1,
-        titleColor: '#06d6f3',
-        bodyColor: '#e2e8f0',
+        titleColor: '#3b82f6',
+        bodyColor: '#e6edf3',
         callbacks: {
           label: ctx => ' $' + ctx.parsed.y.toFixed(2)
         }
       }
     },
     scales: {
-      x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#7b85a3', font: { size: 11 } } },
+      x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#8b949e', font: { size: 11 } } },
       y: {
-        grid: { color: 'rgba(255,255,255,.05)' },
+        grid: { color: 'rgba(255,255,255,.04)' },
         ticks: {
-          color: '#7b85a3', font: { size: 11 },
+          color: '#8b949e', font: { size: 11 },
           callback: v => '$' + v.toFixed(0)
         }
       }
@@ -1042,7 +1032,7 @@ function updateChart() {
   });
   pnlChart.data.labels = labels;
   pnlChart.data.datasets[0].data = data;
-  pnlChart.data.datasets[0].borderColor = cum >= 0 ? '#06d6f3' : '#ff4d6d';
+  pnlChart.data.datasets[0].borderColor = cum >= 0 ? '#3b82f6' : '#ef4444';
   pnlChart.update();
 }
 
