@@ -10,10 +10,13 @@
     appId:             "1:379808896124:web:46eb97a708525588eba5f9"
   };
 
+  // ── ImgBB API key for free screenshot hosting (imgbb.com) ───────────────
+  // Get your free key at: https://api.imgbb.com/
+  const IMGBB_API_KEY = 'PASTE_YOUR_IMGBB_KEY_HERE';
+
   if (!firebase.apps.length) firebase.initializeApp(CFG);
   const auth = firebase.auth();
   const db   = firebase.firestore();
-  const stor = firebase.storage();
   window.fbAuth = auth;
   window.fbDb   = db;
 
@@ -200,23 +203,19 @@
       fields.createdAt     = firebase.firestore.FieldValue.serverTimestamp();
       fields.hasScreenshot = false;
       const ref = await db.collection('users').doc(uid).collection('trades').add(fields);
-      if (screenshot) {
-        try {
-          const url = await TPDb.uploadScreenshot(uid, ref.id, screenshot);
-          await ref.update({ screenshotUrl: url, hasScreenshot: true });
-          return { id: ref.id, ...fields, screenshotUrl: url, hasScreenshot: true };
-        } catch (e) { console.warn('Screenshot upload failed:', e); }
-      }
       return { id: ref.id, ...fields };
     },
 
     async deleteTrade(uid, docId) {
       await db.collection('users').doc(uid).collection('trades').doc(docId).delete();
-      try { await stor.ref(`screenshots/${uid}/${docId}`).delete(); } catch (_) {}
     },
 
     async uploadScreenshot(uid, docId, base64data, onProgress) {
-      // Compress to JPEG — fall back to original if anything goes wrong
+      if (!IMGBB_API_KEY || IMGBB_API_KEY === 'PASTE_YOUR_IMGBB_KEY_HERE') {
+        throw new Error('ImgBB API key not set. Get a free key at https://api.imgbb.com/ and paste it into firebase-app.js.');
+      }
+
+      // Compress to JPEG before uploading
       const compressed = await new Promise(resolve => {
         const img = new Image();
         const fallback = () => resolve(base64data);
@@ -235,54 +234,39 @@
         img.src = base64data;
       });
 
-      const blob = _b64ToBlob(compressed);
-      const ref  = stor.ref(`screenshots/${uid}/${docId}`);
-      const task = ref.put(blob);
+      if (onProgress) onProgress(10);
 
-      return new Promise((resolve, reject) => {
-        // Cancel the task and reject if it stalls for 30 seconds
-        const timerId = setTimeout(() => {
-          task.cancel();
-          reject(new Error(
-            'Upload timed out after 30 s.\n\n' +
-            'Most likely cause: Firebase Storage security rules have expired.\n' +
-            'Fix: Firebase Console → Storage → Rules → paste the rules below → Publish:\n\n' +
-            'rules_version = \'2\';\n' +
-            'service firebase.storage {\n' +
-            '  match /b/{bucket}/o {\n' +
-            '    match /screenshots/{uid}/{docId} {\n' +
-            '      allow read, write: if request.auth != null && request.auth.uid == uid;\n' +
-            '    }\n' +
-            '  }\n' +
-            '}'
-          ));
-        }, 30000);
+      // Strip the data URL header — ImgBB wants raw base64
+      const base64 = compressed.split(';base64,')[1];
+      const form   = new FormData();
+      form.append('key',   IMGBB_API_KEY);
+      form.append('image', base64);
+      form.append('name',  `tp_${docId}`);
 
-        task.on('state_changed',
-          snapshot => {
-            if (onProgress) {
-              const pct = Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100);
-              onProgress(pct);
-            }
-          },
-          error => {
-            clearTimeout(timerId);
-            const msgs = {
-              'storage/unauthorized':
-                'Permission denied — Firebase Storage rules have expired.\n' +
-                'Fix: Firebase Console → Storage → Rules → republish with rules that allow authenticated users.',
-              'storage/canceled': 'Upload was cancelled.',
-              'storage/retry-limit-exceeded': 'Upload failed after multiple retries — check your internet connection.',
-            };
-            reject(new Error(msgs[error.code] || `Upload failed (${error.code}): ${error.message}`));
-          },
-          async () => {
-            clearTimeout(timerId);
-            try { resolve(await ref.getDownloadURL()); }
-            catch (e) { reject(e); }
-          }
-        );
-      });
+      const controller = new AbortController();
+      const timerId    = setTimeout(() => controller.abort(), 30000);
+
+      let resp;
+      try {
+        resp = await fetch('https://api.imgbb.com/1/upload', {
+          method: 'POST', body: form, signal: controller.signal
+        });
+      } catch (e) {
+        clearTimeout(timerId);
+        throw new Error(e.name === 'AbortError'
+          ? 'Upload timed out after 30 s — check your internet connection.'
+          : `Network error: ${e.message}`);
+      }
+      clearTimeout(timerId);
+
+      if (onProgress) onProgress(90);
+
+      if (!resp.ok) throw new Error(`ImgBB returned ${resp.status}. Check your API key.`);
+      const json = await resp.json();
+      if (!json.success) throw new Error(`ImgBB error: ${json.error?.message || JSON.stringify(json)}`);
+
+      if (onProgress) onProgress(100);
+      return json.data.url;
     },
 
     async updateTrade(uid, docId, updatedData) {
