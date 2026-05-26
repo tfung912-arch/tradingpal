@@ -17,56 +17,9 @@
   window.fbAuth = auth;
   window.fbDb   = db;
 
-  // ── Modal injection on DOM ready ────────────────────────────────────────
+  // ── DOMContentLoaded: inject styles + loading spinner ───────────────────
   document.addEventListener('DOMContentLoaded', function () {
-    const overlay = document.getElementById('tp-auth-overlay');
-    if (!overlay) return;
-
-    overlay.innerHTML = `
-      <div id="tp-modal-card">
-        <div class="tp-logo">
-          <svg viewBox="0 0 36 36" fill="none" width="38" height="38">
-            <circle cx="18" cy="18" r="17" stroke="#06d6f3" stroke-width="1.5" opacity=".4"/>
-            <path d="M8 24 L14 14 L20 19 L26 10" stroke="#06d6f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="26" cy="10" r="3" fill="#7c3aed"/>
-            <path d="M18 4 L19 2 L20 4" fill="#fbbf24" opacity=".8"/>
-          </svg>
-          <span>TradingPal</span>
-        </div>
-        <div class="tp-sub">Your cosmic trading journal</div>
-
-        <div class="tp-tabs">
-          <button class="tp-tab tp-tab-on" id="tp-tab-si"  onclick="TPAuth.switchTab('si')">Sign In</button>
-          <button class="tp-tab"            id="tp-tab-reg" onclick="TPAuth.switchTab('reg')">Create Account</button>
-        </div>
-
-        <div id="tp-form-si">
-          <div class="tp-field"><label>Email</label>
-            <input type="email" id="tp-si-email" placeholder="you@example.com"
-                   onkeydown="if(event.key==='Enter')TPAuth.signIn()" /></div>
-          <div class="tp-field"><label>Password</label>
-            <input type="password" id="tp-si-pass" placeholder="Your password"
-                   onkeydown="if(event.key==='Enter')TPAuth.signIn()" /></div>
-          <div class="tp-err" id="tp-si-err"></div>
-          <button class="tp-submit" id="tp-si-btn" onclick="TPAuth.signIn()">Sign In</button>
-        </div>
-
-        <div id="tp-form-reg" style="display:none">
-          <div class="tp-field"><label>Username</label>
-            <input type="text" id="tp-reg-name" placeholder="Display name" maxlength="30"
-                   onkeydown="if(event.key==='Enter')TPAuth.register()" /></div>
-          <div class="tp-field"><label>Email</label>
-            <input type="email" id="tp-reg-email" placeholder="you@example.com"
-                   onkeydown="if(event.key==='Enter')TPAuth.register()" /></div>
-          <div class="tp-field"><label>Password</label>
-            <input type="password" id="tp-reg-pass" placeholder="Min 6 characters"
-                   onkeydown="if(event.key==='Enter')TPAuth.register()" /></div>
-          <div class="tp-err" id="tp-reg-err"></div>
-          <button class="tp-submit" id="tp-reg-btn" onclick="TPAuth.register()">Create Account</button>
-        </div>
-      </div>`;
-
-    // Styles
+    // Styles (injected once)
     const s = document.createElement('style');
     s.textContent = `
       #tp-auth-overlay {
@@ -140,17 +93,30 @@
       #tp-mig-banner .mig-text strong { color:#06d6f3; }
       .mig-btn {
         padding:8px 16px;border-radius:8px;font-size:.78rem;font-weight:700;
-        cursor:pointer;border:none;font-family:inherit;transition:opacity .2s;
-        white-space:nowrap;
+        cursor:pointer;border:none;font-family:inherit;transition:opacity .2s;white-space:nowrap;
       }
       .mig-btn.pri { background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff; }
       .mig-btn.sec { background:rgba(255,255,255,.06);color:#7b85a3;border:1px solid rgba(120,80,255,.2); }
       .mig-btn:hover { opacity:.85; }
     `;
     document.head.appendChild(s);
+
+    // Show a loading spinner until auth state resolves
+    const overlay = document.getElementById('tp-auth-overlay');
+    if (overlay) {
+      overlay.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+          <svg width="44" height="44" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="17" stroke="#06d6f3" stroke-width="1.5" opacity=".4"/>
+            <path d="M8 24 L14 14 L20 19 L26 10" stroke="#06d6f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="26" cy="10" r="3" fill="#7c3aed"/>
+          </svg>
+          <div style="color:#7b85a3;font-size:.82rem;letter-spacing:.06em">Loading…</div>
+        </div>`;
+    }
   });
 
-  // ── Auth state ──────────────────────────────────────────────────────────
+  // ── Auth state: hide spinner if logged in, show login form if not ────────
   auth.onAuthStateChanged(async function (user) {
     const overlay = document.getElementById('tp-auth-overlay');
     if (user) {
@@ -158,11 +124,58 @@
       _injectUserNav(user);
       if (typeof window.onTPReady === 'function') await window.onTPReady(user);
     } else {
-      if (overlay) overlay.style.display = 'flex';
+      _showLoginForm();
     }
   });
 
-  // ── User nav injection ──────────────────────────────────────────────────
+  // ── Login form (only injected when auth confirms no user) ────────────────
+  function _showLoginForm() {
+    const overlay = document.getElementById('tp-auth-overlay');
+    if (!overlay) return;
+    overlay.style.display = 'flex';
+    overlay.innerHTML = `
+      <div id="tp-modal-card">
+        <div class="tp-logo">
+          <svg viewBox="0 0 36 36" fill="none" width="38" height="38">
+            <circle cx="18" cy="18" r="17" stroke="#06d6f3" stroke-width="1.5" opacity=".4"/>
+            <path d="M8 24 L14 14 L20 19 L26 10" stroke="#06d6f3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="26" cy="10" r="3" fill="#7c3aed"/>
+            <path d="M18 4 L19 2 L20 4" fill="#fbbf24" opacity=".8"/>
+          </svg>
+          <span>TradingPal</span>
+        </div>
+        <div class="tp-sub">Your cosmic trading journal</div>
+        <div class="tp-tabs">
+          <button class="tp-tab tp-tab-on" id="tp-tab-si"  onclick="TPAuth.switchTab('si')">Sign In</button>
+          <button class="tp-tab"            id="tp-tab-reg" onclick="TPAuth.switchTab('reg')">Create Account</button>
+        </div>
+        <div id="tp-form-si">
+          <div class="tp-field"><label>Email</label>
+            <input type="email" id="tp-si-email" placeholder="you@example.com"
+                   onkeydown="if(event.key==='Enter')TPAuth.signIn()" /></div>
+          <div class="tp-field"><label>Password</label>
+            <input type="password" id="tp-si-pass" placeholder="Your password"
+                   onkeydown="if(event.key==='Enter')TPAuth.signIn()" /></div>
+          <div class="tp-err" id="tp-si-err"></div>
+          <button class="tp-submit" id="tp-si-btn" onclick="TPAuth.signIn()">Sign In</button>
+        </div>
+        <div id="tp-form-reg" style="display:none">
+          <div class="tp-field"><label>Username</label>
+            <input type="text" id="tp-reg-name" placeholder="Display name" maxlength="30"
+                   onkeydown="if(event.key==='Enter')TPAuth.register()" /></div>
+          <div class="tp-field"><label>Email</label>
+            <input type="email" id="tp-reg-email" placeholder="you@example.com"
+                   onkeydown="if(event.key==='Enter')TPAuth.register()" /></div>
+          <div class="tp-field"><label>Password</label>
+            <input type="password" id="tp-reg-pass" placeholder="Min 6 characters"
+                   onkeydown="if(event.key==='Enter')TPAuth.register()" /></div>
+          <div class="tp-err" id="tp-reg-err"></div>
+          <button class="tp-submit" id="tp-reg-btn" onclick="TPAuth.register()">Create Account</button>
+        </div>
+      </div>`;
+  }
+
+  // ── User nav injection ───────────────────────────────────────────────────
   function _injectUserNav(user) {
     if (document.getElementById('tp-user-nav')) return;
     const nav = document.querySelector('nav.nav-pills');
@@ -175,7 +188,7 @@
     nav.parentNode.insertBefore(div, nav.nextSibling);
   }
 
-  // ── Firestore / Storage helpers ─────────────────────────────────────────
+  // ── Firestore / Storage helpers ──────────────────────────────────────────
   window.TPDb = {
     async loadTrades(uid) {
       const snap = await db.collection('users').doc(uid).collection('trades')
@@ -185,7 +198,7 @@
 
     async saveTrade(uid, tradeData) {
       const { screenshot, ...fields } = tradeData;
-      fields.createdAt    = firebase.firestore.FieldValue.serverTimestamp();
+      fields.createdAt     = firebase.firestore.FieldValue.serverTimestamp();
       fields.hasScreenshot = false;
       const ref = await db.collection('users').doc(uid).collection('trades').add(fields);
       if (screenshot) {
@@ -221,7 +234,7 @@
     }
   };
 
-  // ── Auth actions ────────────────────────────────────────────────────────
+  // ── Auth actions ─────────────────────────────────────────────────────────
   window.TPAuth = {
     switchTab(tab) {
       const reg = tab === 'reg';
@@ -275,7 +288,7 @@
     getCurrentUser() { return auth.currentUser; }
   };
 
-  // ── Migration banner ────────────────────────────────────────────────────
+  // ── Migration banner ─────────────────────────────────────────────────────
   window.TPMigrate = {
     offer(uid, localTrades) {
       if (!localTrades.length || document.getElementById('tp-mig-banner')) return;
@@ -307,7 +320,7 @@
     }
   };
 
-  // ── Helpers ─────────────────────────────────────────────────────────────
+  // ── Helpers ──────────────────────────────────────────────────────────────
   function _b64ToBlob(dataUrl) {
     const [meta, data] = dataUrl.split(';base64,');
     const type = meta.split(':')[1];
