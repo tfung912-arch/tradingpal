@@ -263,6 +263,72 @@
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 99px; }
+
+    /* ── Edit modal ─────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: rgba(12,12,35,.98); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 36px; width: min(620px, 100%);
+      max-height: 88vh; overflow-y: auto;
+      box-shadow: 0 0 60px var(--purple-glow);
+    }
+    .modal h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 24px; color: var(--cyan); }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label {
+      font-size: .68rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted);
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 9px; padding: 9px 12px; color: var(--text);
+      font-size: .88rem; font-family: inherit; outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(6,214,243,.15);
+    }
+    .form-group select option { background: #0f0f28; }
+    .form-group textarea { resize: vertical; min-height: 80px; line-height: 1.6; }
+    .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+    .btn-cancel {
+      padding: 10px 22px; border-radius: 10px; font-size: .85rem; font-weight: 600;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all .2s; font-family: inherit;
+    }
+    .btn-cancel:hover { border-color: var(--red); color: var(--red); }
+    .submit-btn {
+      padding: 10px 24px; border-radius: 10px; font-size: .85rem; font-weight: 700;
+      border: none; background: linear-gradient(135deg, var(--purple), #5b21b6);
+      color: #fff; cursor: pointer; font-family: inherit;
+      box-shadow: 0 0 16px var(--purple-glow); transition: opacity .2s;
+    }
+    .submit-btn:hover { opacity: .9; }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .edit-ss-preview { margin-top: 10px; position: relative; display: none; }
+    .edit-ss-preview img {
+      width: 100%; max-height: 180px; object-fit: cover;
+      border-radius: 10px; border: 1px solid var(--border);
+    }
+    .edit-ss-remove {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(255,77,109,.8); border: none; color: #fff;
+      border-radius: 50%; width: 26px; height: 26px; font-size: .8rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .card-edit-btn {
+      font-size: .72rem; color: var(--muted); font-weight: 600;
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 10px; cursor: pointer; font-family: inherit;
+      transition: all .2s;
+    }
+    .card-edit-btn:hover { border-color: var(--purple); color: var(--purple); }
   </style>
 </head>
 <body>
@@ -366,6 +432,66 @@
   <div class="lightbox-caption">
     <div id="lightbox-meta"></div>
     <a id="lightbox-dl" class="lightbox-dl" download="chart.png">Download</a>
+  </div>
+</div>
+
+<!-- ── Edit Trade Modal ─────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3>✏️ Edit Trade</h3>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Symbol</label>
+        <input type="text" id="e-symbol" placeholder="e.g. BTCUSD" />
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="e-date" />
+      </div>
+      <div class="form-group">
+        <label>Direction</label>
+        <select id="e-dir">
+          <option value="LONG">LONG</option>
+          <option value="SHORT">SHORT</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Size (units)</label>
+        <input type="number" id="e-size" placeholder="100" min="0" step="any" />
+      </div>
+      <div class="form-group">
+        <label>Entry Price</label>
+        <input type="number" id="e-entry" placeholder="0.00" step="any" />
+      </div>
+      <div class="form-group">
+        <label>Exit Price</label>
+        <input type="number" id="e-exit" placeholder="0.00" step="any" />
+      </div>
+      <div class="form-group">
+        <label>Point / Tick Value (USD)</label>
+        <input type="number" id="e-pointval" placeholder="1.00" step="any" value="1" />
+      </div>
+      <div class="form-group">
+        <label>Realized P&amp;L (USD) <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:.65rem">— leave blank to auto-calculate</span></label>
+        <input type="number" id="e-pnl" placeholder="Auto" step="any" />
+      </div>
+      <div class="form-group full">
+        <label>Notes</label>
+        <textarea id="e-notes" placeholder="What was your thesis? What did you learn?"></textarea>
+      </div>
+      <div class="form-group full">
+        <label>Chart Screenshot</label>
+        <input type="file" id="e-screenshot" accept="image/*" style="color:var(--muted);font-size:.82rem" />
+        <div class="edit-ss-preview" id="e-ss-preview">
+          <img id="e-ss-img" src="" alt="Current chart" />
+          <button class="edit-ss-remove" onclick="removeEditScreenshot()" title="Remove screenshot">✕</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+      <button class="submit-btn" id="e-save-btn" onclick="saveEdit()">Save Changes</button>
+    </div>
   </div>
 </div>
 
@@ -503,7 +629,8 @@ function renderCards(list) {
             : `<div class="no-notes">No notes recorded for this trade.</div>`}
         </div>
 
-        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(120,80,255,.1);display:flex;justify-content:flex-end;">
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(120,80,255,.1);display:flex;justify-content:space-between;align-items:center;">
+          <button class="card-edit-btn" onclick="event.stopPropagation();editTrade('${t.id}')">✏️ Edit</button>
           <span style="font-size:.75rem;color:var(--cyan);font-weight:600;letter-spacing:.04em;">View Full Details →</span>
         </div>
       </div>`;
@@ -542,6 +669,105 @@ document.getElementById('lightbox').addEventListener('click', e => {
   if (e.target === document.getElementById('lightbox')) closeLightbox();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ── Edit trade ─────────────────────────────────────────────────────────────
+let editingTradeId = null;
+let editPendingScreenshot = null;
+let editScreenshotRemoved = false;
+
+function editTrade(tradeId) {
+  const t = trades.find(x => x.id === tradeId);
+  if (!t) return;
+  editingTradeId = tradeId;
+  editPendingScreenshot = null;
+  editScreenshotRemoved = false;
+
+  document.getElementById('e-symbol').value   = t.symbol || '';
+  document.getElementById('e-date').value      = t.date   || '';
+  document.getElementById('e-dir').value       = t.dir    || 'LONG';
+  document.getElementById('e-size').value      = t.size   || '';
+  document.getElementById('e-entry').value     = t.entry  || '';
+  document.getElementById('e-exit').value      = t.exit   || '';
+  document.getElementById('e-pointval').value  = t.pointValue || 1;
+  document.getElementById('e-pnl').value       = (t.realizedPnl !== null && t.realizedPnl !== undefined) ? t.realizedPnl : '';
+  document.getElementById('e-notes').value     = t.notes  || '';
+  document.getElementById('e-screenshot').value = '';
+
+  const ssUrl = t.screenshotUrl || t.screenshot || null;
+  const preview = document.getElementById('e-ss-preview');
+  const img     = document.getElementById('e-ss-img');
+  if (ssUrl) { img.src = ssUrl; preview.style.display = 'block'; }
+  else         { preview.style.display = 'none'; }
+
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function removeEditScreenshot() {
+  editScreenshotRemoved = true;
+  editPendingScreenshot = null;
+  document.getElementById('e-ss-preview').style.display = 'none';
+  document.getElementById('e-screenshot').value = '';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  document.getElementById('e-screenshot').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) { alert('Image must be under 3 MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      editPendingScreenshot = e.target.result;
+      editScreenshotRemoved = false;
+      document.getElementById('e-ss-img').src = editPendingScreenshot;
+      document.getElementById('e-ss-preview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('edit-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('edit-modal')) closeEditModal();
+  });
+});
+
+async function saveEdit() {
+  const sym   = document.getElementById('e-symbol').value.trim();
+  const date  = document.getElementById('e-date').value;
+  const dir   = document.getElementById('e-dir').value;
+  const size  = parseFloat(document.getElementById('e-size').value);
+  const entry = parseFloat(document.getElementById('e-entry').value);
+  const exit  = parseFloat(document.getElementById('e-exit').value);
+  if (!sym || !date || isNaN(size) || isNaN(entry) || isNaN(exit)) {
+    alert('Please fill in all required fields.');
+    return;
+  }
+  const pnlRaw      = parseFloat(document.getElementById('e-pnl').value);
+  const realizedPnl = isNaN(pnlRaw) ? null : pnlRaw;
+  const pointValue  = parseFloat(document.getElementById('e-pointval').value) || 1;
+  const notes       = document.getElementById('e-notes').value.trim();
+
+  const btn = document.getElementById('e-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const fields = { symbol: sym, date, dir, size, entry, exit, pointValue, realizedPnl, notes };
+  if (editScreenshotRemoved) { fields.screenshotUrl = null; fields.hasScreenshot = false; }
+  if (editPendingScreenshot) { fields.screenshot = editPendingScreenshot; }
+
+  const updated = await TPDb.updateTrade(currentUser.uid, editingTradeId, fields);
+
+  // Patch local trades array
+  const idx = trades.findIndex(x => x.id === editingTradeId);
+  if (idx !== -1) trades[idx] = { ...trades[idx], ...fields, ...updated };
+
+  btn.disabled = false; btn.textContent = 'Save Changes';
+  closeEditModal();
+  applyFilters();
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  editingTradeId = null;
+  editPendingScreenshot = null;
+  editScreenshotRemoved = false;
+}
 
 // ── Init ───────────────────────────────────────────────────────────────────
 window.onTPReady = async function (user) {

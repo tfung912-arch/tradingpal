@@ -223,6 +223,18 @@
       return ref.getDownloadURL();
     },
 
+    async updateTrade(uid, docId, updatedData) {
+      const { screenshot, ...fields } = updatedData;
+      await db.collection('users').doc(uid).collection('trades').doc(docId).update(fields);
+      if (screenshot && screenshot.startsWith('data:')) {
+        const url = await TPDb.uploadScreenshot(uid, docId, screenshot);
+        await db.collection('users').doc(uid).collection('trades').doc(docId)
+          .update({ screenshotUrl: url, hasScreenshot: true });
+        return { ...fields, screenshotUrl: url, hasScreenshot: true };
+      }
+      return fields;
+    },
+
     async migrateTrades(uid, localTrades, onProgress) {
       let done = 0;
       for (const t of localTrades) {
