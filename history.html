@@ -741,19 +741,31 @@ async function saveEdit() {
   const btn = document.getElementById('e-save-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
 
+  const pendingScreenshot = editPendingScreenshot;
+  const tradeId = editingTradeId;
   const fields = { symbol: sym, date, dir, size, entry, exit, pointValue, realizedPnl, notes };
   if (editScreenshotRemoved) { fields.screenshotUrl = null; fields.hasScreenshot = false; }
-  if (editPendingScreenshot) { fields.screenshot = editPendingScreenshot; }
 
-  const updated = await TPDb.updateTrade(currentUser.uid, editingTradeId, fields);
+  // Save core fields to Firestore immediately (no screenshot)
+  await fbDb.collection('users').doc(currentUser.uid).collection('trades').doc(tradeId).update(fields);
 
-  // Patch local trades array
-  const idx = trades.findIndex(x => x.id === editingTradeId);
-  if (idx !== -1) trades[idx] = { ...trades[idx], ...fields, ...updated };
+  const idx = trades.findIndex(x => x.id === tradeId);
+  if (idx !== -1) trades[idx] = { ...trades[idx], ...fields };
 
   btn.disabled = false; btn.textContent = 'Save Changes';
   closeEditModal();
   applyFilters();
+
+  // Upload new screenshot in the background — don't block the UI
+  if (pendingScreenshot) {
+    try {
+      const url = await TPDb.uploadScreenshot(currentUser.uid, tradeId, pendingScreenshot);
+      await fbDb.collection('users').doc(currentUser.uid).collection('trades').doc(tradeId)
+        .update({ screenshotUrl: url, hasScreenshot: true });
+      const i = trades.findIndex(x => x.id === tradeId);
+      if (i !== -1) { trades[i].screenshotUrl = url; trades[i].hasScreenshot = true; applyFilters(); }
+    } catch (e) { console.warn('Screenshot upload failed:', e); }
+  }
 }
 
 function closeEditModal() {

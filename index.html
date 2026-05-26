@@ -1324,13 +1324,25 @@ async function addTrade() {
   const btn = document.querySelector('.submit-btn');
   btn.disabled = true; btn.textContent = 'Saving…';
 
-  const tradeData = { symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence, screenshot: pendingScreenshot || null };
+  const screenshot = pendingScreenshot || null;
+  const tradeData = { symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence };
   const saved = await TPDb.saveTrade(currentUser.uid, tradeData);
   trades.unshift(saved);
 
   btn.disabled = false; btn.textContent = 'Log Trade';
   closeModal();
   refresh();
+
+  // Upload screenshot in the background — don't block the UI
+  if (screenshot) {
+    try {
+      const url = await TPDb.uploadScreenshot(currentUser.uid, saved.id, screenshot);
+      await fbDb.collection('users').doc(currentUser.uid).collection('trades').doc(saved.id)
+        .update({ screenshotUrl: url, hasScreenshot: true });
+      const idx = trades.findIndex(t => t.id === saved.id);
+      if (idx !== -1) { trades[idx].screenshotUrl = url; trades[idx].hasScreenshot = true; renderTable(); }
+    } catch (e) { console.warn('Screenshot upload failed:', e); }
+  }
 }
 
 async function deleteTrade(tradeId) {
