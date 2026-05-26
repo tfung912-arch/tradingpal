@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TradingPal — Trade Detail</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+  <script src="firebase-app.js"></script>
   <style>
     :root {
       --bg-deep:     #06061a;
@@ -175,6 +180,8 @@
 </head>
 <body>
 
+<div id="tp-auth-overlay" style="display:flex"></div>
+
 <iframe id="bg-frame" src="background.html"></iframe>
 
 <div class="shell">
@@ -203,20 +210,27 @@
 
 <script>
 function computePnL(t) {
-  return (t.dir === 'LONG' ? 1 : -1) * (t.exit - t.entry) * t.size;
+  if (t.realizedPnl !== null && t.realizedPnl !== undefined) return t.realizedPnl;
+  return (t.dir === 'LONG' ? 1 : -1) * (t.exit - t.entry) * (t.size || 1) * (t.pointValue || 1);
 }
 function fmt(n) { return (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2); }
 function formatDate(d) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-const params = new URLSearchParams(location.search);
-const idx = parseInt(params.get('idx'), 10);
-const trades = JSON.parse(localStorage.getItem('tp_trades') || '[]');
-const t = trades[idx];
 const content = document.getElementById('content');
 
-if (!t || isNaN(idx)) {
+window.onTPReady = async function (user) {
+  const params = new URLSearchParams(location.search);
+  const docId  = params.get('id');
+  let t = null;
+
+  if (docId) {
+    const snap = await fbDb.collection('users').doc(user.uid).collection('trades').doc(docId).get();
+    if (snap.exists) t = { id: snap.id, ...snap.data() };
+  }
+
+if (!t) {
   content.innerHTML = `
     <div class="not-found">
       <div class="icon">🌌</div>
@@ -235,11 +249,12 @@ if (!t || isNaN(idx)) {
 
   document.title = `TradingPal — ${t.symbol.toUpperCase()} ${formatDate(t.date)}`;
 
-  const screenshotHtml = t.screenshot
+  const ssUrl = t.screenshotUrl || t.screenshot || null;
+  const screenshotHtml = ssUrl
     ? `<div class="screenshot-box">
-         <img src="${t.screenshot}" alt="Chart for ${t.symbol}" />
+         <img src="${ssUrl}" alt="Chart for ${t.symbol}" />
          <div class="screenshot-actions">
-           <a class="dl-btn" href="${t.screenshot}" download="${t.symbol}_${t.date}.png">Download Chart</a>
+           <a class="dl-btn" href="${ssUrl}" download="${t.symbol}_${t.date}.png">Download Chart</a>
          </div>
        </div>`
     : `<div class="no-screenshot-box">
@@ -303,6 +318,7 @@ if (!t || isNaN(idx)) {
         : '<span class="empty">No notes were recorded for this trade.</span>'}
     </div>`;
 }
+}; // end onTPReady
 </script>
 </body>
 </html>

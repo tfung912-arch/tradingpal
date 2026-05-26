@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TradingPal — Your Cosmic Trading Journal</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+  <script src="firebase-app.js"></script>
   <style>
     :root {
       --bg-deep:     #06061a;
@@ -465,6 +470,8 @@
 </head>
 <body>
 
+<div id="tp-auth-overlay" style="display:flex"></div>
+
 <iframe id="bg-frame" src="background.html"></iframe>
 
 <div class="shell">
@@ -724,10 +731,11 @@
 <script>
 
 // ─── State ───────────────────────────────────────────────────────────────
-let trades = JSON.parse(localStorage.getItem('tp_trades') || '[]');
+let trades = [];
+let currentUser = null;
 let activeRange = 7;
 let pendingScreenshot = null;
-let pnlManuallyEdited = false; // true when the user has typed into the P&L field
+let pnlManuallyEdited = false;
 
 // ─── P&L auto-calculation ─────────────────────────────────────────────────
 function autoCalcPnl() {
@@ -934,11 +942,12 @@ function clearScreenshot(e) {
 }
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────
-function openLightbox(idx) {
-  const t   = trades[idx];
+function openLightbox(tradeId) {
+  const t   = trades.find(x => x.id === tradeId);
+  if (!t) return;
   const pnl = computePnL(t);
-  document.getElementById('lightbox-img').src = t.screenshot;
-  document.getElementById('lightbox-dl').href = t.screenshot;
+  document.getElementById('lightbox-img').src = t.screenshotUrl || t.screenshot || '';
+  document.getElementById('lightbox-dl').href = t.screenshotUrl || t.screenshot || '';
   document.getElementById('lightbox-dl').download = `${t.symbol}_${t.date}.png`;
   document.getElementById('lightbox-meta').innerHTML =
     `<strong>${t.symbol.toUpperCase()}</strong> &nbsp;·&nbsp; ${t.date} &nbsp;·&nbsp;
@@ -1074,11 +1083,10 @@ function renderTable() {
   emptyR.style.display = 'none';
   document.getElementById('journal-count').textContent = `${trades.length} entr${trades.length===1?'y':'ies'}`;
 
-  [...trades].sort((a,b) => new Date(b.date)-new Date(a.date)).forEach((t, i) => {
+  [...trades].sort((a,b) => new Date(b.date)-new Date(a.date)).forEach((t) => {
     const pnl    = computePnL(t);
-    const idx    = trades.indexOf(t);
     const tr     = document.createElement('tr');
-    const hasShot = !!t.screenshot;
+    const hasShot = !!(t.screenshotUrl || t.screenshot);
     tr.innerHTML = `
       <td style="color:var(--muted);white-space:nowrap">${t.date}</td>
       <td style="font-weight:700">${t.symbol.toUpperCase()}</td>
@@ -1088,8 +1096,8 @@ function renderTable() {
       <td>${t.size}</td>
       <td class="pnl ${pnl>=0?'pos':'neg'}">${fmt(pnl)}</td>
       <td style="color:var(--muted);font-size:.78rem;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.notes||'—'}</td>
-      <td><button class="ss-btn ${hasShot?'has-img':''}" title="${hasShot?'View chart screenshot':'No screenshot'}" ${hasShot?`onclick="openLightbox(${idx})"`:''}>📷</button></td>
-      <td><button class="del-btn" onclick="deleteTrade(${idx})">✕</button></td>`;
+      <td><button class="ss-btn ${hasShot?'has-img':''}" title="${hasShot?'View chart screenshot':'No screenshot'}" ${hasShot?`onclick="openLightbox('${t.id}')"`:''}>📷</button></td>
+      <td><button class="del-btn" onclick="deleteTrade('${t.id}')">✕</button></td>`;
     tbody.appendChild(tr);
   });
 }
@@ -1301,12 +1309,10 @@ function generateFeedback() {
      </div>`;
 }
 
-function persist() { localStorage.setItem('tp_trades', JSON.stringify(trades)); }
-
 function refresh() { updateStats(); renderTable(); updateChart(); generateFeedback(); }
 
 // ─── Add / Delete ─────────────────────────────────────────────────────────
-function addTrade() {
+async function addTrade() {
   const sym   = document.getElementById('f-symbol').value.trim();
   const date  = document.getElementById('f-date').value;
   const dir   = document.getElementById('f-dir').value;
@@ -1324,16 +1330,23 @@ function addTrade() {
   const pointValue  = parseFloat(document.getElementById('f-pointval').value) || 1;
   const emotions    = getSelectedEmotions();
   const confidence  = parseInt(document.getElementById('f-confidence').value) || 5;
-  trades.push({ symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence, screenshot: pendingScreenshot || null });
-  persist();
+
+  const btn = document.querySelector('.submit-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  const tradeData = { symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence, screenshot: pendingScreenshot || null };
+  const saved = await TPDb.saveTrade(currentUser.uid, tradeData);
+  trades.unshift(saved);
+
+  btn.disabled = false; btn.textContent = 'Log Trade';
   closeModal();
   refresh();
 }
 
-function deleteTrade(idx) {
+async function deleteTrade(tradeId) {
   if (!confirm('Remove this trade?')) return;
-  trades.splice(idx, 1);
-  persist();
+  await TPDb.deleteTrade(currentUser.uid, tradeId);
+  trades = trades.filter(t => t.id !== tradeId);
   refresh();
 }
 
@@ -1352,8 +1365,14 @@ function closeModal() {
 document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 
 // ─── Init ─────────────────────────────────────────────────────────────────
-refresh();
-updateSaber(5);
+window.onTPReady = async function (user) {
+  currentUser = user;
+  trades = await TPDb.loadTrades(user.uid);
+  refresh();
+  updateSaber(5);
+  const local = JSON.parse(localStorage.getItem('tp_trades') || '[]');
+  if (local.length) TPMigrate.offer(user.uid, local);
+};
 </script>
 </body>
 </html>

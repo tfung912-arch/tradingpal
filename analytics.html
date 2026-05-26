@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TradingPal — Analytics</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+  <script src="firebase-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -225,6 +230,8 @@
 </head>
 <body>
 
+<div id="tp-auth-overlay" style="display:flex"></div>
+
 <iframe id="bg-frame" src="background.html"></iframe>
 
 <div class="shell">
@@ -262,24 +269,30 @@
 <script>
 
 /* ── Helpers ───────────────────────────────────────────────────────────── */
-const trades = JSON.parse(localStorage.getItem('tp_trades') || '[]');
+let trades = [];
 
-function pnl(t)  { return (t.dir==='LONG'?1:-1)*(t.exit-t.entry)*t.size; }
+function pnl(t)  {
+  if (t.realizedPnl !== null && t.realizedPnl !== undefined) return t.realizedPnl;
+  return (t.dir==='LONG'?1:-1)*(t.exit-t.entry)*(t.size||1)*(t.pointValue||1);
+}
 function fmt(n)  { return (n>=0?'+$':'-$')+Math.abs(n).toFixed(2); }
 function fmtAbs(n){ return '$'+Math.abs(n).toFixed(2); }
 
-/* ── Empty state ───────────────────────────────────────────────────────── */
-if (!trades.length) {
-  document.getElementById('content').innerHTML = `
-    <div class="empty-state">
-      <div class="icon">🌌</div>
-      <div style="font-size:1.1rem;color:var(--text);font-weight:600">No data yet</div>
-      <p>Log some trades on the dashboard and your analytics will appear here.</p>
-      <a href="index.html">Go to Dashboard</a>
-    </div>`;
-} else {
-  buildAnalytics();
-}
+/* ── Init ──────────────────────────────────────────────────────────────── */
+window.onTPReady = async function (user) {
+  trades = await TPDb.loadTrades(user.uid);
+  if (!trades.length) {
+    document.getElementById('content').innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🌌</div>
+        <div style="font-size:1.1rem;color:var(--text);font-weight:600">No data yet</div>
+        <p>Log some trades on the dashboard and your analytics will appear here.</p>
+        <a href="index.html">Go to Dashboard</a>
+      </div>`;
+  } else {
+    buildAnalytics();
+  }
+};
 
 /* ── Build page ────────────────────────────────────────────────────────── */
 function buildAnalytics() {

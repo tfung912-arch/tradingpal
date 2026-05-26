@@ -4,6 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TradingPal — History</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+  <script src="firebase-app.js"></script>
   <style>
     :root {
       --bg-deep:     #06061a;
@@ -262,6 +267,8 @@
 </head>
 <body>
 
+<div id="tp-auth-overlay" style="display:flex"></div>
+
 <iframe id="bg-frame" src="background.html"></iframe>
 
 <div class="shell">
@@ -365,7 +372,8 @@
 <script>
 
 // ── Data ───────────────────────────────────────────────────────────────────
-const trades = JSON.parse(localStorage.getItem('tp_trades') || '[]');
+let trades = [];
+let currentUser = null;
 
 function computePnL(t) {
   return (t.dir === 'LONG' ? 1 : -1) * (t.exit - t.entry) * t.size;
@@ -449,9 +457,10 @@ function renderCards(list) {
     card.className = `trade-card ${isWin ? 'win' : 'loss'}`;
 
     // Screenshot section
-    const ssSection = t.screenshot
-      ? `<div class="card-screenshot" onclick="openLightbox(${realIdx})">
-           <img src="${t.screenshot}" alt="Chart for ${t.symbol}" loading="lazy" />
+    const ssUrl = t.screenshotUrl || t.screenshot || null;
+    const ssSection = ssUrl
+      ? `<div class="card-screenshot" onclick="openLightbox('${t.id}')">
+           <img src="${ssUrl}" alt="Chart for ${t.symbol}" loading="lazy" />
            <div class="ss-overlay"><div class="ss-overlay-icon">🔍</div></div>
          </div>`
       : `<div class="card-screenshot" style="cursor:default">
@@ -501,7 +510,7 @@ function renderCards(list) {
 
     card.addEventListener('click', e => {
       if (e.target.closest('.card-screenshot')) return;
-      location.href = `trade-detail.html?idx=${realIdx}`;
+      location.href = `trade-detail.html?id=${t.id}`;
     });
 
     grid.appendChild(card);
@@ -514,11 +523,13 @@ function formatDate(d) {
 }
 
 // ── Lightbox ───────────────────────────────────────────────────────────────
-function openLightbox(idx) {
-  const t   = trades[idx];
+function openLightbox(tradeId) {
+  const t   = trades.find(x => x.id === tradeId);
+  if (!t) return;
   const pnl = computePnL(t);
-  document.getElementById('lightbox-img').src = t.screenshot;
-  document.getElementById('lightbox-dl').href = t.screenshot;
+  const ssUrl = t.screenshotUrl || t.screenshot || '';
+  document.getElementById('lightbox-img').src = ssUrl;
+  document.getElementById('lightbox-dl').href = ssUrl;
   document.getElementById('lightbox-dl').download = `${t.symbol}_${t.date}.png`;
   document.getElementById('lightbox-meta').innerHTML =
     `<strong>${t.symbol.toUpperCase()}</strong> &nbsp;·&nbsp; ${formatDate(t.date)} &nbsp;·&nbsp;
@@ -533,7 +544,13 @@ document.getElementById('lightbox').addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
 // ── Init ───────────────────────────────────────────────────────────────────
-applyFilters();
+window.onTPReady = async function (user) {
+  currentUser = user;
+  trades = await TPDb.loadTrades(user.uid);
+  applyFilters();
+  const local = JSON.parse(localStorage.getItem('tp_trades') || '[]');
+  if (local.length) TPMigrate.offer(user.uid, local);
+};
 </script>
 </body>
 </html>
