@@ -216,7 +216,20 @@
     },
 
     async uploadScreenshot(uid, docId, base64data) {
-      const blob = _b64ToBlob(base64data);
+      // Compress to JPEG before upload — typically reduces 3 MB → 150-400 KB
+      const compressed = await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const scale  = Math.min(1, 1920 / img.width);
+          const canvas = document.createElement('canvas');
+          canvas.width  = Math.round(img.width  * scale);
+          canvas.height = Math.round(img.height * scale);
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.src = base64data;
+      });
+      const blob = _b64ToBlob(compressed);
       const ref  = stor.ref(`screenshots/${uid}/${docId}`);
       await ref.put(blob);
       return ref.getDownloadURL();
