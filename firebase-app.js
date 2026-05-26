@@ -215,7 +215,7 @@
       try { await stor.ref(`screenshots/${uid}/${docId}`).delete(); } catch (_) {}
     },
 
-    async uploadScreenshot(uid, docId, base64data) {
+    async uploadScreenshot(uid, docId, base64data, onProgress) {
       // Compress to JPEG — fall back to original if anything goes wrong
       const compressed = await new Promise(resolve => {
         const img = new Image();
@@ -231,34 +231,63 @@
             resolve(canvas.toDataURL('image/jpeg', 0.75));
           } catch (_) { fallback(); }
         };
-        // Safety net: if neither event fires within 5 s, proceed with original
         setTimeout(fallback, 5000);
         img.src = base64data;
       });
+
       const blob = _b64ToBlob(compressed);
       const ref  = stor.ref(`screenshots/${uid}/${docId}`);
-      const putTask = ref.put(blob);
-      const timer   = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Upload timed out after 15 s')), 15000)
-      );
-      await Promise.race([putTask, timer]);
-      return ref.getDownloadURL();
+      const task = ref.put(blob);
+
+      return new Promise((resolve, reject) => {
+        // Cancel the task and reject if it stalls for 30 seconds
+        const timerId = setTimeout(() => {
+          task.cancel();
+          reject(new Error(
+            'Upload timed out after 30 s.\n\n' +
+            'Most likely cause: Firebase Storage security rules have expired.\n' +
+            'Fix: Firebase Console → Storage → Rules → paste the rules below → Publish:\n\n' +
+            'rules_version = \'2\';\n' +
+            'service firebase.storage {\n' +
+            '  match /b/{bucket}/o {\n' +
+            '    match /screenshots/{uid}/{docId} {\n' +
+            '      allow read, write: if request.auth != null && request.auth.uid == uid;\n' +
+            '    }\n' +
+            '  }\n' +
+            '}'
+          ));
+        }, 30000);
+
+        task.on('state_changed',
+          snapshot => {
+            if (onProgress) {
+              const pct = Math.round(snapshot.bytesTransferred / snapshot.totalBytes * 100);
+              onProgress(pct);
+            }
+          },
+          error => {
+            clearTimeout(timerId);
+            const msgs = {
+              'storage/unauthorized':
+                'Permission denied — Firebase Storage rules have expired.\n' +
+                'Fix: Firebase Console → Storage → Rules → republish with rules that allow authenticated users.',
+              'storage/canceled': 'Upload was cancelled.',
+              'storage/retry-limit-exceeded': 'Upload failed after multiple retries — check your internet connection.',
+            };
+            reject(new Error(msgs[error.code] || `Upload failed (${error.code}): ${error.message}`));
+          },
+          async () => {
+            clearTimeout(timerId);
+            try { resolve(await ref.getDownloadURL()); }
+            catch (e) { reject(e); }
+          }
+        );
+      });
     },
 
     async updateTrade(uid, docId, updatedData) {
       const { screenshot, ...fields } = updatedData;
       await db.collection('users').doc(uid).collection('trades').doc(docId).update(fields);
-      if (screenshot && screenshot.startsWith('data:')) {
-        try {
-          const url = await TPDb.uploadScreenshot(uid, docId, screenshot);
-          await db.collection('users').doc(uid).collection('trades').doc(docId)
-            .update({ screenshotUrl: url, hasScreenshot: true });
-          return { ...fields, screenshotUrl: url, hasScreenshot: true };
-        } catch (e) {
-          console.warn('Screenshot upload failed:', e);
-          return { ...fields, _screenshotFailed: true };
-        }
-      }
       return fields;
     },
 

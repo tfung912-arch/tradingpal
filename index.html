@@ -1326,16 +1326,33 @@ async function addTrade() {
   btn.textContent = pendingScreenshot ? 'Uploading chart…' : 'Saving…';
 
   try {
-    const tradeData = { symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence, screenshot: pendingScreenshot || null };
+    // 1. Save trade data to Firestore immediately (fast — no screenshot yet)
+    btn.textContent = 'Saving…';
+    const tradeData = { symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence };
     const saved = await TPDb.saveTrade(currentUser.uid, tradeData);
-    const hadScreenshot = !!pendingScreenshot;
     trades.unshift(saved);
+
+    // 2. Upload screenshot separately so failure doesn't lose the trade
+    if (pendingScreenshot) {
+      try {
+        btn.textContent = 'Uploading 0%';
+        const url = await TPDb.uploadScreenshot(currentUser.uid, saved.id, pendingScreenshot, pct => {
+          btn.textContent = `Uploading ${pct}%`;
+        });
+        await fbDb.collection('users').doc(currentUser.uid).collection('trades').doc(saved.id)
+          .update({ screenshotUrl: url, hasScreenshot: true });
+        saved.screenshotUrl = url;
+        saved.hasScreenshot = true;
+        trades[0] = saved;
+      } catch (e) {
+        console.error('Screenshot upload error:', e);
+        TPToast('Chart upload failed — trade was saved without the screenshot.\n' + e.message, 'warn');
+      }
+    }
+
     btn.disabled = false; btn.textContent = 'Log Trade';
     closeModal();
     refresh();
-    if (hadScreenshot && !saved.screenshotUrl) {
-      TPToast('Trade saved — chart upload failed. Check Firebase Storage rules.', 'warn');
-    }
   } catch (e) {
     console.error('Save failed:', e);
     btn.disabled = false; btn.textContent = 'Log Trade';

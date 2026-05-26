@@ -743,23 +743,34 @@ async function saveEdit() {
   btn.textContent = editPendingScreenshot ? 'Uploading chart…' : 'Saving…';
 
   try {
+    // 1. Save trade fields to Firestore immediately (no screenshot)
+    btn.textContent = 'Saving…';
     const fields = { symbol: sym, date, dir, size, entry, exit, pointValue, realizedPnl, notes };
     if (editScreenshotRemoved) { fields.screenshotUrl = null; fields.hasScreenshot = false; }
-    const hadScreenshot = !!editPendingScreenshot;
-    if (hadScreenshot) { fields.screenshot = editPendingScreenshot; }
-
-    const updated = await TPDb.updateTrade(currentUser.uid, editingTradeId, fields);
+    await TPDb.updateTrade(currentUser.uid, editingTradeId, fields);
 
     const idx = trades.findIndex(x => x.id === editingTradeId);
-    if (idx !== -1) trades[idx] = { ...trades[idx], ...fields, ...updated };
+    if (idx !== -1) trades[idx] = { ...trades[idx], ...fields };
+
+    // 2. Upload new screenshot separately so failure doesn't lose other edits
+    if (editPendingScreenshot) {
+      try {
+        btn.textContent = 'Uploading 0%';
+        const url = await TPDb.uploadScreenshot(currentUser.uid, editingTradeId, editPendingScreenshot, pct => {
+          btn.textContent = `Uploading ${pct}%`;
+        });
+        await fbDb.collection('users').doc(currentUser.uid).collection('trades').doc(editingTradeId)
+          .update({ screenshotUrl: url, hasScreenshot: true });
+        if (idx !== -1) { trades[idx].screenshotUrl = url; trades[idx].hasScreenshot = true; }
+      } catch (e) {
+        console.error('Screenshot upload error:', e);
+        TPToast('Changes saved — chart upload failed.\n' + e.message, 'warn');
+      }
+    }
 
     btn.disabled = false; btn.textContent = 'Save Changes';
     closeEditModal();
     applyFilters();
-
-    if (hadScreenshot && updated._screenshotFailed) {
-      TPToast('Trade saved — chart upload failed. Check Firebase Storage rules.', 'warn');
-    }
   } catch (e) {
     console.error('Edit save failed:', e);
     btn.disabled = false; btn.textContent = 'Save Changes';
