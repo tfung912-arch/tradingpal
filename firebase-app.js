@@ -237,7 +237,11 @@
       });
       const blob = _b64ToBlob(compressed);
       const ref  = stor.ref(`screenshots/${uid}/${docId}`);
-      await ref.put(blob);
+      const putTask = ref.put(blob);
+      const timer   = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Upload timed out after 15 s')), 15000)
+      );
+      await Promise.race([putTask, timer]);
       return ref.getDownloadURL();
     },
 
@@ -245,10 +249,15 @@
       const { screenshot, ...fields } = updatedData;
       await db.collection('users').doc(uid).collection('trades').doc(docId).update(fields);
       if (screenshot && screenshot.startsWith('data:')) {
-        const url = await TPDb.uploadScreenshot(uid, docId, screenshot);
-        await db.collection('users').doc(uid).collection('trades').doc(docId)
-          .update({ screenshotUrl: url, hasScreenshot: true });
-        return { ...fields, screenshotUrl: url, hasScreenshot: true };
+        try {
+          const url = await TPDb.uploadScreenshot(uid, docId, screenshot);
+          await db.collection('users').doc(uid).collection('trades').doc(docId)
+            .update({ screenshotUrl: url, hasScreenshot: true });
+          return { ...fields, screenshotUrl: url, hasScreenshot: true };
+        } catch (e) {
+          console.warn('Screenshot upload failed:', e);
+          return { ...fields, _screenshotFailed: true };
+        }
       }
       return fields;
     },
@@ -351,6 +360,21 @@
   };
 
   // ── Helpers ──────────────────────────────────────────────────────────────
+  window.TPToast = function (msg, type) {
+    const warn = type === 'warn';
+    const t = document.createElement('div');
+    t.style.cssText =
+      'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+      'padding:12px 24px;border-radius:10px;z-index:9999;font-size:.82rem;font-weight:700;' +
+      'white-space:nowrap;max-width:90vw;text-align:center;' +
+      (warn
+        ? 'background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:#f59e0b;'
+        : 'background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:#10b981;');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 5000);
+  };
+
   function _b64ToBlob(dataUrl) {
     const [meta, data] = dataUrl.split(';base64,');
     const type = meta.split(':')[1];

@@ -1325,13 +1325,22 @@ async function addTrade() {
   btn.disabled = true;
   btn.textContent = pendingScreenshot ? 'Uploading chart…' : 'Saving…';
 
-  const tradeData = { symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence, screenshot: pendingScreenshot || null };
-  const saved = await TPDb.saveTrade(currentUser.uid, tradeData);
-  trades.unshift(saved);
-
-  btn.disabled = false; btn.textContent = 'Log Trade';
-  closeModal();
-  refresh();
+  try {
+    const tradeData = { symbol: sym, date, dir, size, entry, exit, notes, realizedPnl, pointValue, emotions, confidence, screenshot: pendingScreenshot || null };
+    const saved = await TPDb.saveTrade(currentUser.uid, tradeData);
+    const hadScreenshot = !!pendingScreenshot;
+    trades.unshift(saved);
+    btn.disabled = false; btn.textContent = 'Log Trade';
+    closeModal();
+    refresh();
+    if (hadScreenshot && !saved.screenshotUrl) {
+      TPToast('Trade saved — chart upload failed. Check Firebase Storage rules.', 'warn');
+    }
+  } catch (e) {
+    console.error('Save failed:', e);
+    btn.disabled = false; btn.textContent = 'Log Trade';
+    alert('Failed to save trade. Please try again.');
+  }
 }
 
 async function deleteTrade(tradeId) {
