@@ -18,11 +18,12 @@
   (function () {
     const link = document.createElement('link');
     link.rel  = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600;700&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Oswald:wght@300;400;600;700&display=swap';
     document.head.appendChild(link);
 
     const s = document.createElement('style');
     s.textContent = `
+      /* ── Gold theme overrides ── */
       [data-theme="gold"] {
         --bg-deep:#111111;
         --bg-card:rgba(24,24,24,.98);
@@ -43,10 +44,72 @@
       }
       [data-theme="gold"] #bg-frame { display:none !important; }
       [data-theme="gold"] .stat-card { border-color:rgba(240,165,0,.2); }
-      [data-theme="gold"] .stat-card:hover { border-color:rgba(240,165,0,.5) !important; }
-      [data-theme="gold"] .pill.active { border-color:var(--gold);color:var(--gold);background:rgba(240,165,0,.08); }
-      [data-theme="gold"] .pill:hover  { border-color:var(--gold);color:var(--gold); }
+      [data-theme="gold"] .stat-card:hover {
+        box-shadow:0 8px 28px rgba(0,0,0,.6),0 0 0 1px rgba(240,165,0,.28) !important;
+        border-color:rgba(240,165,0,.5) !important;
+      }
+      [data-theme="gold"] .pill.active {
+        border-color:var(--gold);color:var(--gold);
+        background:rgba(240,165,0,.08);
+        box-shadow:inset 0 0 0 1px rgba(240,165,0,.4);
+      }
+      [data-theme="gold"] .pill:hover { border-color:var(--gold);color:var(--gold); }
       [data-theme="gold"] .logo { color:var(--gold); }
+      [data-theme="gold"] .submit-btn,[data-theme="gold"] .add-btn,[data-theme="gold"] .save-btn {
+        background:linear-gradient(135deg,#c8860a,#a86d08) !important;
+        box-shadow:0 2px 10px rgba(200,134,10,.4) !important;
+      }
+      [data-theme="gold"] .submit-btn:hover,[data-theme="gold"] .add-btn:hover,[data-theme="gold"] .save-btn:hover {
+        box-shadow:0 4px 18px rgba(200,134,10,.55) !important;
+      }
+
+      /* ── Global premium styles (all pages, both themes) ── */
+      body { font-family:'Inter','Segoe UI',system-ui,sans-serif; }
+
+      .shell { animation:_tpFadeUp .42s cubic-bezier(.22,.68,0,1.2) both; }
+      @keyframes _tpFadeUp {
+        from { opacity:0; transform:translateY(10px); }
+        to   { opacity:1; transform:translateY(0); }
+      }
+
+      .stat-card,.chart-card,.journal-card,.form-card,
+      .feedback-card,.notes-card,.screenshot-box,.settings-card,.hero-card {
+        box-shadow:0 2px 8px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.3);
+        transition:box-shadow .22s ease,border-color .22s ease,transform .22s ease;
+      }
+      .stat-card:hover { transform:translateY(-2px); }
+      .chart-card:hover { transform:translateY(-1px); }
+
+      .modal {
+        animation:_tpModalIn .26s cubic-bezier(.22,.68,0,1.15) both;
+        box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05) !important;
+      }
+      @keyframes _tpModalIn {
+        from { opacity:0; transform:scale(.96) translateY(6px); }
+        to   { opacity:1; transform:scale(1) translateY(0); }
+      }
+
+      .submit-btn,.add-btn,.save-btn {
+        background:linear-gradient(135deg,#2563eb,#1a50cc) !important;
+        box-shadow:0 2px 10px rgba(37,99,235,.38);
+        transition:opacity .15s,transform .15s,box-shadow .15s !important;
+      }
+      .submit-btn:hover,.add-btn:hover,.save-btn:hover {
+        box-shadow:0 4px 20px rgba(37,99,235,.55) !important;
+        opacity:1 !important;
+      }
+      .submit-btn:active,.add-btn:active,.save-btn:active {
+        transform:scale(.97) !important;
+      }
+
+      .pill.active {
+        background:rgba(59,130,246,.14) !important;
+        box-shadow:inset 0 0 0 1px rgba(59,130,246,.45);
+      }
+
+      ::-webkit-scrollbar { width:4px; }
+      ::-webkit-scrollbar-thumb { background:rgba(65,145,247,.28);border-radius:99px; }
+      ::-webkit-scrollbar-thumb:hover { background:rgba(65,145,247,.5); }
     `;
     document.head.appendChild(s);
 

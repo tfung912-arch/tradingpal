@@ -11,12 +11,12 @@
   <script src="firebase-app.js"></script>
   <style>
     :root {
-      --bg-deep:     #0d1117;
-      --bg-card:     rgba(22, 27, 34, 0.95);
-      --bg-glass:    rgba(255, 255, 255, 0.03);
-      --border:      rgba(48, 54, 61, 0.9);
+      --bg-deep:     #080c14;
+      --bg-card:     rgba(11, 17, 28, 0.97);
+      --bg-glass:    rgba(255, 255, 255, 0.04);
+      --border:      rgba(255, 255, 255, 0.07);
       --accent:      #2563eb;
-      --blue:        #3b82f6;
+      --blue:        #4191f7;
       --green:       #10b981;
       --red:         #ef4444;
       --text:        #e6edf3;
@@ -87,10 +87,11 @@
     }
     .theme-card {
       border-radius: 16px; padding: 22px 24px; cursor: pointer;
-      border: 2px solid var(--border); transition: all .2s;
+      border: 2px solid var(--border); transition: all .22s;
       position: relative; user-select: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,.4);
     }
-    .theme-card:hover { border-color: var(--blue); }
+    .theme-card:hover { border-color: var(--blue); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.5); }
     .theme-card.selected { border-color: var(--blue); background: rgba(59,130,246,.06); }
     .theme-card.selected-gold { border-color: #f0a500; background: rgba(240,165,0,.06); }
     .theme-preview {
