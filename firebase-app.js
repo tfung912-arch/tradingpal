@@ -174,6 +174,16 @@
     `;
     document.head.appendChild(s);
 
+    // Inject theme toggle button into the header nav immediately
+    const _nav = document.querySelector('nav.nav-pills');
+    if (_nav && !document.getElementById('tp-theme-btn')) {
+      const _tb = document.createElement('button');
+      _tb.id = 'tp-theme-btn';
+      _tb.onclick = function () { TPTheme.toggle(); };
+      _nav.parentNode.insertBefore(_tb, _nav.nextSibling);
+      _syncThemeBtn();
+    }
+
     // Show a loading spinner until auth state resolves
     const overlay = document.getElementById('tp-auth-overlay');
     if (overlay) {
@@ -255,11 +265,12 @@
     const div = document.createElement('div');
     div.id = 'tp-user-nav';
     div.innerHTML =
-      `<button id="tp-theme-btn" onclick="TPTheme.toggle()">◑ Gold</button>` +
       `<span id="tp-user-name">${user.displayName || user.email.split('@')[0]}</span>` +
       `<button id="tp-logout-btn" onclick="TPAuth.signOut()">Sign Out</button>`;
-    nav.parentNode.insertBefore(div, nav.nextSibling);
-    _syncThemeBtn();
+    // Insert user nav after the theme button (which is already in the DOM)
+    const themeBtn = document.getElementById('tp-theme-btn');
+    const insertAfter = themeBtn || nav;
+    insertAfter.parentNode.insertBefore(div, insertAfter.nextSibling);
   }
 
   // ── Firestore / Storage helpers ──────────────────────────────────────────
