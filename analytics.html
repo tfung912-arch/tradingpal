@@ -87,18 +87,29 @@
     /* ── Total P&L hero ────────────────────────────────────── */
     .hero-card {
       background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 22px; padding: 36px 40px;
+      border-radius: 22px; overflow: hidden;
       backdrop-filter: blur(14px);
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 24px;
+      display: flex; flex-direction: column;
       margin-bottom: 24px;
-      position: relative; overflow: hidden;
+      position: relative;
     }
     .hero-card::before {
       content: ''; position: absolute; inset: 0;
       background: radial-gradient(ellipse at 80% 40%, rgba(37,99,235,.1) 0%, transparent 65%),
                   radial-gradient(ellipse at 10% 80%, rgba(16,185,129,.05) 0%, transparent 50%);
-      pointer-events: none;
+      pointer-events: none; z-index: 0;
+    }
+    .hero-top {
+      display: grid; grid-template-columns: 1fr 1fr;
+      padding: 36px 40px 28px; gap: 0; position: relative; z-index: 1;
+    }
+    @media (max-width: 620px) {
+      .hero-top { grid-template-columns: 1fr; }
+      .hero-metric-right { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 24px; margin-top: 24px; }
+    }
+    .hero-metric-right {
+      padding-left: 40px;
+      border-left: 1px solid var(--border);
     }
     .hero-label {
       font-size: .7rem; font-weight: 700; letter-spacing: .18em;
@@ -110,8 +121,14 @@
     }
     .hero-value.up   { color: var(--green); }
     .hero-value.down { color: var(--red); }
+    .hero-value.neutral { color: var(--muted); }
     .hero-sub { font-size: .82rem; color: var(--muted); margin-top: 8px; }
-    .hero-chips { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-chips {
+      display: flex; gap: 12px; flex-wrap: wrap;
+      padding: 20px 40px 36px;
+      border-top: 1px solid var(--border);
+      position: relative; z-index: 1;
+    }
     .hero-chip {
       padding: 8px 18px; border-radius: 10px; font-size: .82rem; font-weight: 600;
       border: 1px solid var(--border); background: var(--bg-glass);
@@ -311,6 +328,16 @@ function buildAnalytics() {
     else   { curLoss++; curWin=0; maxLoss=Math.max(maxLoss,curLoss); }
   });
 
+  /* ── Today's P&L ─── */
+  const todayStr    = new Date().toISOString().slice(0, 10);
+  const todayTrades = trades.filter(t => t.date === todayStr);
+  const todayPnl    = todayTrades.reduce((s, t) => s + pnl(t), 0);
+
+  /* ── Account value ─── */
+  const balance    = parseFloat((window.TPSettings || {}).accountBalance);
+  const hasBalance = !isNaN(balance) && balance > 0;
+  const acctValue  = hasBalance ? balance + totalPnl : totalPnl;
+
   /* ── Direction split ─── */
   const longT  = trades.filter(t=>t.dir==='LONG');
   const shortT = trades.filter(t=>t.dir==='SHORT');
@@ -323,12 +350,31 @@ function buildAnalytics() {
   /* ── Inject HTML ─── */
   document.getElementById('content').innerHTML = `
 
-    <!-- Hero: Total P&L -->
+    <!-- Hero: Account Value + Today's P&L -->
     <div class="hero-card">
-      <div>
-        <div class="hero-label">Total P &amp; L</div>
-        <div class="hero-value ${totalPnl>=0?'up':'down'}">${fmt(totalPnl)}</div>
-        <div class="hero-sub">${trades.length} trades recorded &nbsp;·&nbsp; Avg ${fmt(avgTrade)} per trade</div>
+      <div class="hero-top">
+        <div class="hero-metric">
+          <div class="hero-label">${hasBalance ? 'Account Value' : 'Total P&amp;L'}</div>
+          <div class="hero-value ${hasBalance ? (totalPnl>=0?'up':'down') : (totalPnl>=0?'up':'down')}">
+            ${hasBalance ? fmtCur(acctValue) : fmt(totalPnl)}
+          </div>
+          <div class="hero-sub">
+            ${hasBalance
+              ? `${fmt(totalPnl)} P&amp;L &nbsp;·&nbsp; ${trades.length} trades`
+              : `${trades.length} trades &nbsp;·&nbsp; Avg ${fmt(avgTrade)} per trade`}
+          </div>
+        </div>
+        <div class="hero-metric hero-metric-right">
+          <div class="hero-label">Today's P&amp;L</div>
+          <div class="hero-value ${todayPnl>0?'up':todayPnl<0?'down':'neutral'}">
+            ${todayTrades.length ? fmt(todayPnl) : '—'}
+          </div>
+          <div class="hero-sub">
+            ${todayTrades.length
+              ? `${todayTrades.length} trade${todayTrades.length!==1?'s':''} today &nbsp;·&nbsp; resets at midnight`
+              : 'No trades logged today'}
+          </div>
+        </div>
       </div>
       <div class="hero-chips">
         <div class="hero-chip">
