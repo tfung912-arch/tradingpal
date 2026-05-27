@@ -174,13 +174,13 @@
     `;
     document.head.appendChild(s);
 
-    // Inject theme toggle button into the header nav immediately
+    // Inject theme toggle button as the last item inside nav.nav-pills
     const _nav = document.querySelector('nav.nav-pills');
     if (_nav && !document.getElementById('tp-theme-btn')) {
       const _tb = document.createElement('button');
       _tb.id = 'tp-theme-btn';
       _tb.onclick = function () { TPTheme.toggle(); };
-      _nav.parentNode.insertBefore(_tb, _nav.nextSibling);
+      _nav.appendChild(_tb);
       _syncThemeBtn();
     }
 
@@ -267,10 +267,7 @@
     div.innerHTML =
       `<span id="tp-user-name">${user.displayName || user.email.split('@')[0]}</span>` +
       `<button id="tp-logout-btn" onclick="TPAuth.signOut()">Sign Out</button>`;
-    // Insert user nav after the theme button (which is already in the DOM)
-    const themeBtn = document.getElementById('tp-theme-btn');
-    const insertAfter = themeBtn || nav;
-    insertAfter.parentNode.insertBefore(div, insertAfter.nextSibling);
+    nav.parentNode.insertBefore(div, nav.nextSibling);
   }
 
   // ── Firestore / Storage helpers ──────────────────────────────────────────
