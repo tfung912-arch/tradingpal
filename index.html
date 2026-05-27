@@ -490,7 +490,7 @@
   <!-- ── Stat cards ──────────────────────────────────── -->
   <div class="stats-row">
     <div class="stat-card">
-      <div class="stat-label">Total P&amp;L</div>
+      <div class="stat-label" id="stat-pnl-label">Total P&amp;L</div>
       <div class="stat-value up" id="stat-pnl">+$0.00</div>
       <div class="stat-delta up" id="stat-pnl-delta">—</div>
     </div>
@@ -1043,10 +1043,27 @@ function updateStats() {
   const wr    = trades.length ? (wins / trades.length * 100).toFixed(1) : 0;
   const best  = trades.reduce((b, t) => { const p = computePnL(t); return p > b.v ? {v:p,sym:t.symbol} : b; }, {v:0,sym:'—'});
 
-  const pnlEl = document.getElementById('stat-pnl');
-  pnlEl.textContent = fmt(total);
-  pnlEl.className   = 'stat-value ' + (total >= 0 ? 'up' : 'down');
-  document.getElementById('stat-pnl-delta').textContent = trades.length ? `from ${trades.length} trades` : '—';
+  const balance = parseFloat((window.TPSettings || {}).accountBalance);
+  const hasBalance = !isNaN(balance) && balance > 0;
+
+  const pnlEl    = document.getElementById('stat-pnl');
+  const labelEl  = document.getElementById('stat-pnl-label');
+  const deltaEl  = document.getElementById('stat-pnl-delta');
+
+  if (hasBalance) {
+    const accountValue = balance + total;
+    labelEl.textContent = 'Account Value';
+    pnlEl.textContent   = fmtCur(accountValue);
+    pnlEl.className     = 'stat-value ' + (accountValue >= balance ? 'up' : 'down');
+    deltaEl.textContent = fmt(total) + (trades.length ? ` · ${trades.length} trades` : '');
+    deltaEl.className   = 'stat-delta ' + (total >= 0 ? 'up' : 'down');
+  } else {
+    labelEl.textContent = 'Total P&L';
+    pnlEl.textContent   = fmt(total);
+    pnlEl.className     = 'stat-value ' + (total >= 0 ? 'up' : 'down');
+    deltaEl.textContent = trades.length ? `from ${trades.length} trades` : '—';
+    deltaEl.className   = 'stat-delta ' + (total >= 0 ? 'up' : 'down');
+  }
 
   document.getElementById('stat-winrate').textContent = wr + '%';
   document.getElementById('stat-winrate-delta').textContent = `${wins} wins / ${trades.length} trades`;
