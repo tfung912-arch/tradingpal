@@ -60,27 +60,33 @@
   window.fbAuth = auth;
   window.fbDb   = db;
 
-  // ── Theme toggle ─────────────────────────────────────────────────────────
-  window.TPTheme = {
-    toggle() {
-      const gold = document.documentElement.getAttribute('data-theme') === 'gold';
-      if (gold) {
-        document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('tp_theme', 'default');
-      } else {
-        document.documentElement.setAttribute('data-theme', 'gold');
-        localStorage.setItem('tp_theme', 'gold');
-      }
-      _syncThemeBtn();
-    }
+  // ── User settings (loaded sync so all pages see them before their JS runs) ─
+  window.TPSettings = (function () {
+    const def = { currency: '$', defaultSize: '', defaultPointValue: '', accountBalance: '' };
+    try { return Object.assign(def, JSON.parse(localStorage.getItem('tp_settings') || '{}')); }
+    catch (_) { return def; }
+  }());
+
+  // Currency formatters — used by every page
+  window.fmtCur = function (n) {
+    return (TPSettings.currency || '$') + Math.abs(Number(n)).toFixed(2);
+  };
+  window.fmtPnL = function (n) {
+    return (n >= 0 ? '+' : '-') + (TPSettings.currency || '$') + Math.abs(n).toFixed(2);
   };
 
-  function _syncThemeBtn() {
-    const btn  = document.getElementById('tp-theme-btn');
-    if (!btn) return;
-    const gold = document.documentElement.getAttribute('data-theme') === 'gold';
-    btn.textContent = gold ? '◑ Default' : '◑ Gold';
-  }
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  window.TPTheme = {
+    setTheme(name) {
+      if (name === 'gold') document.documentElement.setAttribute('data-theme', 'gold');
+      else                 document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('tp_theme', name);
+    },
+    toggle() {
+      this.setTheme(document.documentElement.getAttribute('data-theme') === 'gold' ? 'default' : 'gold');
+    },
+    current() { return document.documentElement.getAttribute('data-theme') || 'default'; }
+  };
 
   // ── DOMContentLoaded: inject styles + loading spinner ───────────────────
   document.addEventListener('DOMContentLoaded', function () {
@@ -146,14 +152,6 @@
         color:#ef4444;cursor:pointer;font-family:inherit;transition:all .2s;
       }
       #tp-logout-btn:hover { background:rgba(239,68,68,.1);border-color:#ef4444; }
-      #tp-theme-btn {
-        padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;
-        border:1px solid rgba(48,54,61,.9);background:transparent;
-        color:#8b949e;cursor:pointer;font-family:inherit;transition:all .2s;
-      }
-      #tp-theme-btn:hover { border-color:#3b82f6;color:#3b82f6; }
-      [data-theme="gold"] #tp-theme-btn { border-color:rgba(240,165,0,.4);color:#f0a500; }
-      [data-theme="gold"] #tp-theme-btn:hover { border-color:#f0a500;color:#f0a500; }
       #tp-mig-banner {
         position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
         background:rgba(22,27,34,.98);border:1px solid rgba(48,54,61,.9);
@@ -173,16 +171,6 @@
       .mig-btn:hover { opacity:.85; }
     `;
     document.head.appendChild(s);
-
-    // Inject theme toggle button as the last item inside nav.nav-pills
-    const _nav = document.querySelector('nav.nav-pills');
-    if (_nav && !document.getElementById('tp-theme-btn')) {
-      const _tb = document.createElement('button');
-      _tb.id = 'tp-theme-btn';
-      _tb.onclick = function () { TPTheme.toggle(); };
-      _nav.appendChild(_tb);
-      _syncThemeBtn();
-    }
 
     // Show a loading spinner until auth state resolves
     const overlay = document.getElementById('tp-auth-overlay');

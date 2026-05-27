@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TradingPal — Settings</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-storage-compat.js"></script>
+  <script src="firebase-app.js"></script>
+  <style>
+    :root {
+      --bg-deep:     #0d1117;
+      --bg-card:     rgba(22, 27, 34, 0.95);
+      --bg-glass:    rgba(255, 255, 255, 0.03);
+      --border:      rgba(48, 54, 61, 0.9);
+      --accent:      #2563eb;
+      --blue:        #3b82f6;
+      --green:       #10b981;
+      --red:         #ef4444;
+      --text:        #e6edf3;
+      --muted:       #8b949e;
+      --gold:        #f59e0b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    #bg-frame { position: fixed; inset: 0; width: 100%; height: 100%; border: none; z-index: 0; pointer-events: none; }
+
+    .shell { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 24px 80px; }
+
+    /* ── Header ── */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 1.5rem; font-weight: 700; letter-spacing: .04em;
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .logo svg { width: 36px; height: 36px; }
+    .nav-pills { display: flex; gap: 8px; }
+    .pill {
+      padding: 6px 16px; border-radius: 999px; font-size: .8rem; font-weight: 600;
+      border: 1px solid var(--border); background: var(--bg-glass);
+      color: var(--muted); cursor: pointer; transition: all .2s;
+      text-decoration: none; display: inline-block;
+    }
+    .pill:hover { border-color: var(--blue); color: var(--blue); }
+    .pill.active { border-color: var(--blue); color: var(--blue); background: rgba(59,130,246,.08); }
+
+    /* ── Page title ── */
+    .page-header {
+      margin: 40px 0 32px;
+    }
+    .page-title {
+      font-size: 1.8rem; font-weight: 800; letter-spacing: .02em;
+    }
+    .page-sub {
+      color: var(--muted); font-size: .88rem; margin-top: 6px;
+    }
+
+    /* ── Section ── */
+    .section {
+      margin-bottom: 36px;
+    }
+    .section-label {
+      font-size: .65rem; color: var(--muted); letter-spacing: .12em;
+      text-transform: uppercase; margin-bottom: 14px;
+    }
+
+    /* ── Theme cards ── */
+    .theme-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    .theme-card {
+      border-radius: 16px; padding: 22px 24px; cursor: pointer;
+      border: 2px solid var(--border); transition: all .2s;
+      position: relative; user-select: none;
+    }
+    .theme-card:hover { border-color: var(--blue); }
+    .theme-card.selected { border-color: var(--blue); background: rgba(59,130,246,.06); }
+    .theme-card.selected-gold { border-color: #f0a500; background: rgba(240,165,0,.06); }
+    .theme-preview {
+      border-radius: 10px; height: 80px; margin-bottom: 14px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    }
+    .preview-default {
+      background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+      border: 1px solid rgba(48,54,61,.9);
+      color: #3b82f6;
+    }
+    .preview-default .dot { width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; }
+    .preview-gold {
+      background: linear-gradient(135deg, #111111 0%, #181818 100%);
+      border: 1px solid rgba(240,165,0,.25);
+      color: #f0a500;
+      font-family: 'Oswald', system-ui, sans-serif;
+    }
+    .preview-gold .dot { width: 10px; height: 10px; border-radius: 50%; background: #f0a500; }
+    .theme-name {
+      font-size: .92rem; font-weight: 700; color: var(--text); margin-bottom: 4px;
+    }
+    .theme-desc { font-size: .78rem; color: var(--muted); line-height: 1.5; }
+    .check-mark {
+      position: absolute; top: 14px; right: 14px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--blue); display: flex; align-items: center; justify-content: center;
+      font-size: .75rem; color: #fff; opacity: 0; transition: opacity .2s;
+    }
+    .theme-card.selected .check-mark,
+    .theme-card.selected-gold .check-mark { opacity: 1; }
+    .theme-card.selected-gold .check-mark { background: #f0a500; }
+
+    /* ── Settings form ── */
+    .settings-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; backdrop-filter: blur(12px);
+    }
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; gap: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-info { flex: 1; }
+    .settings-row-label {
+      font-size: .9rem; font-weight: 600; color: var(--text); margin-bottom: 3px;
+    }
+    .settings-row-desc { font-size: .78rem; color: var(--muted); line-height: 1.4; }
+    .settings-control { flex-shrink: 0; }
+
+    select, input[type="text"], input[type="number"] {
+      background: rgba(255,255,255,.05); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: .88rem;
+      padding: 10px 14px; font-family: inherit; transition: border-color .2s;
+      outline: none;
+    }
+    select { min-width: 140px; cursor: pointer; }
+    input[type="text"], input[type="number"] { width: 140px; }
+    select:focus, input:focus { border-color: var(--blue); }
+    select option { background: #1c2128; }
+
+    /* ── Save banner ── */
+    .save-banner {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 24px;
+      display: flex; align-items: center; gap: 16px;
+      backdrop-filter: blur(16px); box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+      transform: translateX(-50%) translateY(12px);
+      z-index: 100;
+    }
+    .save-banner.visible {
+      opacity: 1; pointer-events: auto;
+      transform: translateX(-50%) translateY(0);
+    }
+    .save-banner-text { font-size: .85rem; color: var(--muted); }
+    .save-btn {
+      padding: 8px 22px; border-radius: 10px; font-size: .82rem; font-weight: 700;
+      background: var(--accent); border: none; color: #fff; cursor: pointer;
+      font-family: inherit; transition: opacity .2s;
+    }
+    .save-btn:hover { opacity: .85; }
+    .discard-btn {
+      padding: 8px 16px; border-radius: 10px; font-size: .82rem; font-weight: 600;
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      cursor: pointer; font-family: inherit; transition: all .2s;
+    }
+    .discard-btn:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<div id="tp-auth-overlay" style="display:flex"></div>
+
+<iframe id="bg-frame" src="background.html"></iframe>
+
+<div class="shell">
+
+  <header>
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 36 36" fill="none">
+        <circle cx="18" cy="18" r="17" stroke="#3b82f6" stroke-width="1.5" opacity=".4"/>
+        <path d="M8 24 L14 14 L20 19 L26 10" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="26" cy="10" r="3" fill="#2563eb"/>
+      </svg>
+      TradingPal
+    </a>
+    <nav class="nav-pills">
+      <a class="pill" href="index.html">Dashboard</a>
+      <a class="pill" href="analytics.html">Analytics</a>
+      <a class="pill" href="history.html">History</a>
+      <a class="pill active" href="settings.html">Settings</a>
+    </nav>
+  </header>
+
+  <div class="page-header">
+    <div class="page-title">Settings</div>
+    <div class="page-sub">Customise your TradingPal experience. Changes save automatically.</div>
+  </div>
+
+  <!-- Theme -->
+  <div class="section">
+    <div class="section-label">Appearance</div>
+    <div class="theme-grid">
+      <div class="theme-card" id="card-default" onclick="selectTheme('default')">
+        <div class="check-mark">✓</div>
+        <div class="theme-preview preview-default">
+          <div class="dot"></div>
+          Blue · Animated
+        </div>
+        <div class="theme-name">Default</div>
+        <div class="theme-desc">Dark navy with blue accents and animated background.</div>
+      </div>
+      <div class="theme-card" id="card-gold" onclick="selectTheme('gold')">
+        <div class="check-mark">✓</div>
+        <div class="theme-preview preview-gold">
+          <div class="dot"></div>
+          Gold · Bold
+        </div>
+        <div class="theme-name">Gold</div>
+        <div class="theme-desc">Solid charcoal with amber gold accents and Oswald typography.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trading Defaults -->
+  <div class="section">
+    <div class="section-label">Trading Defaults</div>
+    <div class="settings-card">
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Currency</div>
+          <div class="settings-row-desc">Symbol used for all P&amp;L and price displays across the app.</div>
+        </div>
+        <div class="settings-control">
+          <select id="s-currency" onchange="onFieldChange()">
+            <option value="$">$ USD</option>
+            <option value="€">€ EUR</option>
+            <option value="£">£ GBP</option>
+            <option value="¥">¥ JPY</option>
+            <option value="A$">A$ AUD</option>
+            <option value="C$">C$ CAD</option>
+            <option value="CHF">CHF</option>
+            <option value="HK$">HK$ HKD</option>
+            <option value="SGD">SGD</option>
+            <option value="₹">₹ INR</option>
+            <option value="R">R ZAR</option>
+            <option value="kr">kr SEK/NOK</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Default Position Size</div>
+          <div class="settings-row-desc">Auto-filled in the trade log form. Leave blank to always enter manually.</div>
+        </div>
+        <div class="settings-control">
+          <input type="number" id="s-size" min="0" step="any" placeholder="e.g. 1" oninput="onFieldChange()" />
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Default Point Value</div>
+          <div class="settings-row-desc">Multiplier per point/pip for P&amp;L calculation (e.g. 10 for ES futures).</div>
+        </div>
+        <div class="settings-control">
+          <input type="number" id="s-pointval" min="0" step="any" placeholder="e.g. 10" oninput="onFieldChange()" />
+        </div>
+      </div>
+      <div class="settings-row">
+        <div class="settings-row-info">
+          <div class="settings-row-label">Starting Account Balance</div>
+          <div class="settings-row-desc">Used on the Analytics page to display return on account.</div>
+        </div>
+        <div class="settings-control">
+          <input type="number" id="s-balance" min="0" step="any" placeholder="e.g. 10000" oninput="onFieldChange()" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Save banner -->
+<div class="save-banner" id="save-banner">
+  <span class="save-banner-text">You have unsaved changes</span>
+  <button class="discard-btn" onclick="discardChanges()">Discard</button>
+  <button class="save-btn" onclick="saveSettings()">Save Changes</button>
+</div>
+
+<script>
+let _pending = false;
+let _origSettings = {};
+
+window.onTPReady = function () {
+  const s = window.TPSettings || {};
+  _origSettings = JSON.parse(JSON.stringify(s));
+
+  // Theme cards
+  _refreshThemeCards();
+
+  // Form fields
+  document.getElementById('s-currency').value = s.currency || '$';
+  document.getElementById('s-size').value     = s.defaultSize || '';
+  document.getElementById('s-pointval').value  = s.defaultPointValue || '';
+  document.getElementById('s-balance').value   = s.accountBalance || '';
+};
+
+function _refreshThemeCards() {
+  const isGold = document.documentElement.getAttribute('data-theme') === 'gold';
+  const cardDefault = document.getElementById('card-default');
+  const cardGold    = document.getElementById('card-gold');
+  cardDefault.className = 'theme-card' + (isGold ? '' : ' selected');
+  cardGold.className    = 'theme-card' + (isGold ? ' selected-gold' : '');
+}
+
+function selectTheme(name) {
+  window.TPTheme.setTheme(name);
+  _refreshThemeCards();
+}
+
+function onFieldChange() {
+  if (!_pending) {
+    _pending = true;
+    document.getElementById('save-banner').classList.add('visible');
+  }
+}
+
+function saveSettings() {
+  const s = window.TPSettings || {};
+  s.currency          = document.getElementById('s-currency').value;
+  s.defaultSize       = document.getElementById('s-size').value;
+  s.defaultPointValue = document.getElementById('s-pointval').value;
+  s.accountBalance    = document.getElementById('s-balance').value;
+
+  window.TPSettings = s;
+  localStorage.setItem('tp_settings', JSON.stringify(s));
+
+  // Update formatters
+  window.fmtCur = function (n) {
+    return (s.currency || '$') + Math.abs(Number(n)).toFixed(2);
+  };
+  window.fmtPnL = function (n) {
+    return (n >= 0 ? '+' : '-') + (s.currency || '$') + Math.abs(n).toFixed(2);
+  };
+
+  _origSettings = JSON.parse(JSON.stringify(s));
+  _pending = false;
+  document.getElementById('save-banner').classList.remove('visible');
+
+  if (window.TPToast) TPToast('Settings saved', 'success');
+}
+
+function discardChanges() {
+  const s = _origSettings;
+  document.getElementById('s-currency').value  = s.currency || '$';
+  document.getElementById('s-size').value      = s.defaultSize || '';
+  document.getElementById('s-pointval').value  = s.defaultPointValue || '';
+  document.getElementById('s-balance').value   = s.accountBalance || '';
+  _pending = false;
+  document.getElementById('save-banner').classList.remove('visible');
+}
+</script>
+</body>
+</html>

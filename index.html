@@ -483,6 +483,7 @@
       <a class="pill active" href="index.html">Dashboard</a>
       <a class="pill" href="analytics.html">Analytics</a>
       <a class="pill" href="history.html">History</a>
+      <a class="pill" href="settings.html">Settings</a>
     </nav>
   </header>
 
@@ -981,7 +982,7 @@ const pnlChart = new Chart(chartCtx, {
         titleColor: '#3b82f6',
         bodyColor: '#e6edf3',
         callbacks: {
-          label: ctx => ' $' + ctx.parsed.y.toFixed(2)
+          label: ctx => ' ' + (window.TPSettings?.currency || '$') + ctx.parsed.y.toFixed(2)
         }
       }
     },
@@ -999,7 +1000,7 @@ const pnlChart = new Chart(chartCtx, {
 });
 
 // ─── Render helpers ───────────────────────────────────────────────────────
-function fmt(n) { return (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2); }
+function fmt(n) { return window.fmtPnL ? fmtPnL(n) : (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2); }
 
 function computePnL(t) {
   if (t.realizedPnl !== null && t.realizedPnl !== undefined) return t.realizedPnl;
@@ -1051,7 +1052,7 @@ function updateStats() {
   document.getElementById('stat-winrate-delta').textContent = `${wins} wins / ${trades.length} trades`;
 
   const bestEl = document.getElementById('stat-best');
-  bestEl.textContent = best.v ? '$' + best.v.toFixed(2) : '$0.00';
+  bestEl.textContent = best.v ? fmtCur(best.v) : fmtCur(0);
   document.getElementById('stat-best-sym').textContent = best.sym;
 
   document.getElementById('stat-total').textContent = trades.length;
@@ -1081,8 +1082,8 @@ function renderTable() {
       <td style="color:var(--muted);white-space:nowrap">${t.date}</td>
       <td style="font-weight:700">${t.symbol.toUpperCase()}</td>
       <td><span class="badge ${t.dir.toLowerCase()}">${t.dir}</span></td>
-      <td>$${(+t.entry).toFixed(2)}</td>
-      <td>$${(+t.exit).toFixed(2)}</td>
+      <td>${fmtCur(+t.entry)}</td>
+      <td>${fmtCur(+t.exit)}</td>
       <td>${t.size}</td>
       <td class="pnl ${pnl>=0?'pos':'neg'}">${fmt(pnl)}</td>
       <td style="color:var(--muted);font-size:.78rem;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${t.notes||'—'}</td>
@@ -1370,6 +1371,9 @@ async function deleteTrade(tradeId) {
 // ─── Modal ────────────────────────────────────────────────────────────────
 function openModal() {
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  const s = window.TPSettings || {};
+  if (s.defaultSize      && !document.getElementById('f-size').value)     document.getElementById('f-size').value     = s.defaultSize;
+  if (s.defaultPointValue && !document.getElementById('f-pointval').value) document.getElementById('f-pointval').value = s.defaultPointValue;
   document.getElementById('modal').classList.add('open');
 }
 function closeModal() {
