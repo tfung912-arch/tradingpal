@@ -14,11 +14,73 @@
   // Get your free key at: https://api.imgbb.com/
   const IMGBB_API_KEY = '50be6fdeb44cfdbbcbea70ed59218a82';
 
+  // ── Theme: inject font + CSS + apply saved theme before first paint ────────
+  (function () {
+    const link = document.createElement('link');
+    link.rel  = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600;700&display=swap';
+    document.head.appendChild(link);
+
+    const s = document.createElement('style');
+    s.textContent = `
+      [data-theme="gold"] {
+        --bg-deep:#111111;
+        --bg-card:rgba(24,24,24,.98);
+        --bg-glass:rgba(255,255,255,.04);
+        --border:rgba(240,165,0,.18);
+        --accent:#c8860a;
+        --blue:#f0a500;
+        --green:#10b981;
+        --red:#ef4444;
+        --text:#fff;
+        --muted:#909090;
+        --gold:#f0a500;
+      }
+      [data-theme="gold"] body {
+        background:#111111;
+        font-family:'Oswald','Segoe UI',system-ui,sans-serif;
+        letter-spacing:.02em;
+      }
+      [data-theme="gold"] #bg-frame { display:none !important; }
+      [data-theme="gold"] .stat-card { border-color:rgba(240,165,0,.2); }
+      [data-theme="gold"] .stat-card:hover { border-color:rgba(240,165,0,.5) !important; }
+      [data-theme="gold"] .pill.active { border-color:var(--gold);color:var(--gold);background:rgba(240,165,0,.08); }
+      [data-theme="gold"] .pill:hover  { border-color:var(--gold);color:var(--gold); }
+      [data-theme="gold"] .logo { color:var(--gold); }
+    `;
+    document.head.appendChild(s);
+
+    if (localStorage.getItem('tp_theme') === 'gold')
+      document.documentElement.setAttribute('data-theme', 'gold');
+  }());
+
   if (!firebase.apps.length) firebase.initializeApp(CFG);
   const auth = firebase.auth();
   const db   = firebase.firestore();
   window.fbAuth = auth;
   window.fbDb   = db;
+
+  // ── Theme toggle ─────────────────────────────────────────────────────────
+  window.TPTheme = {
+    toggle() {
+      const gold = document.documentElement.getAttribute('data-theme') === 'gold';
+      if (gold) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('tp_theme', 'default');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'gold');
+        localStorage.setItem('tp_theme', 'gold');
+      }
+      _syncThemeBtn();
+    }
+  };
+
+  function _syncThemeBtn() {
+    const btn  = document.getElementById('tp-theme-btn');
+    if (!btn) return;
+    const gold = document.documentElement.getAttribute('data-theme') === 'gold';
+    btn.textContent = gold ? '◑ Default' : '◑ Gold';
+  }
 
   // ── DOMContentLoaded: inject styles + loading spinner ───────────────────
   document.addEventListener('DOMContentLoaded', function () {
@@ -84,6 +146,14 @@
         color:#ef4444;cursor:pointer;font-family:inherit;transition:all .2s;
       }
       #tp-logout-btn:hover { background:rgba(239,68,68,.1);border-color:#ef4444; }
+      #tp-theme-btn {
+        padding:6px 14px;border-radius:999px;font-size:.75rem;font-weight:600;
+        border:1px solid rgba(48,54,61,.9);background:transparent;
+        color:#8b949e;cursor:pointer;font-family:inherit;transition:all .2s;
+      }
+      #tp-theme-btn:hover { border-color:#3b82f6;color:#3b82f6; }
+      [data-theme="gold"] #tp-theme-btn { border-color:rgba(240,165,0,.4);color:#f0a500; }
+      [data-theme="gold"] #tp-theme-btn:hover { border-color:#f0a500;color:#f0a500; }
       #tp-mig-banner {
         position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
         background:rgba(22,27,34,.98);border:1px solid rgba(48,54,61,.9);
@@ -185,9 +255,11 @@
     const div = document.createElement('div');
     div.id = 'tp-user-nav';
     div.innerHTML =
+      `<button id="tp-theme-btn" onclick="TPTheme.toggle()">◑ Gold</button>` +
       `<span id="tp-user-name">${user.displayName || user.email.split('@')[0]}</span>` +
       `<button id="tp-logout-btn" onclick="TPAuth.signOut()">Sign Out</button>`;
     nav.parentNode.insertBefore(div, nav.nextSibling);
+    _syncThemeBtn();
   }
 
   // ── Firestore / Storage helpers ──────────────────────────────────────────
